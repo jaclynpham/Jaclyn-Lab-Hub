@@ -91,6 +91,11 @@ the interaction*:
 
 **Describe your masterwork here, in your own words. What is the core interaction
 someone would recognize it by?**
+Rain Room is a piece from 2012, created by Random International founded in 2005 by Hannes Kock and Florian Ortkrass. Random International is a postdigital art group exploring the human condition expressing the impact of technological development. They fabricate large-scale interactive pieces, and have a global team that operates through their headquarters in London. Random International prides themselves on experimenting interactions through natural and intuitive behaviour which instigates subjective experiences of consciousness. 
+
+The room uses 3D tracking cameras and sensors to detect where people are place in the 3D space, and shuts off the water directly above them. So one can walk straight through a downpour and stay completely dry.
+The core interaction is simple: the user moves, and the rain does not downpour on the user . Cameras read the user’s body as they navigate the space, and the ceiling turns off the valves above you, opening up a dry pocket that follows you around. Everyone can hear and smell the rain, and see it pouring down all around them, but no one gets wet.
+
 
 ## Part A. Plan
 
@@ -98,10 +103,14 @@ For your masterwork, reconstruct the interaction as a scene:
 
 - **Setting:** Where and when does this interaction happen? (a jungle, a kitchen,
   a spaceship corridor, a nightclub, a harbor at night)
+  Your body and your movement, picked up by overhead 3D cameras and sensors. The rain stops around the moving subject, preventing the user from getting rained on.
 - **Players:** Who is involved? Who else is present? Think through everyone in
   the setting, not just the primary user.
+  The visitors sharing the space of the installation when walking under the rain piece. 
 - **Activity:** What is happening between the players and the light?
+The person in front of the camera wants to see themselves on the screen and figure out how their movement changes it. They’re playing, testing what happens when they move fast or slow, or when they hold still. 
 - **Goals:** What is each player trying to do?
+The feeling of controlling the rain, of being dry in the middle of a storm. Its strength is how natural the motion detection is that reacts seamlessly with movement. 
 
 **Describe your setting, players, activity, and goals here.**
 
@@ -110,11 +119,14 @@ don't need to be beautiful, but they must capture and communicate not only the b
 and the people around it. If you're new to storyboarding, read
 [this explanation](https://www.nngroup.com/articles/storyboards-visualize-ideas/).
 
+![Storyboard](/Lab%201/lab1a-storyboard.png)
+
 **Include pictures of your storyboards here.**
 
 Use the storyboards to decide what interaction to prototype.
 
 **Summarize the feedback you got here.**
+“Motion Liquid”: We rebuilt the feel of that relationship using a webcam and motion detection instead of water. The camera watches a still scene; when a person moves, their motion becomes a rippling, water-like displacement on screen. The person is the positive space the effect responds to, and the liquid ripple stands in for Rain Room’s water, the visible trace of the boundary between the body and the element reacting to it.
 
 ## Part B. Act out the Interaction
 

@@ -2,7 +2,7 @@
 
 _This project is to be done in teams of 2._
 
-**COLLABORATORS:** Jaclyn Pham (add teammate name)
+**COLLABORATORS:** Jaclyn Pham, Vasudha Devkota
 
 **THE MASTERWORK YOU DREW FROM THE HAT:** Rain Room (Random International, 2012)
 
@@ -228,7 +228,7 @@ The video sketch that is meant to carry the masterwork is the Tinkerbelle pass: 
 acknowledging their contributions, and credit any other influences (YouTube,
 Github, Twitter, a friend who lent you a lamp) that informed your recreation.
 
-Worked as a pair on this lab (Jaclyn Pham — add teammate). Classmates after the first iteration told us the movement cue was not readable, which is why we added stronger reactive components, then stripped the body off the canvas, then mapped proximity onto Tinkerbelle’s yellow-to-blue light. The [Tinkerbelle](https://github.com/IRL-CT/tinkerbelle) tool is the FAR Lab / IRL-CT remote light we used for the third pass. The masterwork is [Rain Room](https://www.random-international.com/rain-room-2012) by Random International. Webcam motion detection stood in for their 3D tracking cameras.
+Worked as a pair on this lab (Jaclyn Pham — Vasudha Devkota). Classmates after the first iteration told us the movement cue was not readable, which is why we added stronger reactive components, then stripped the body off the canvas, then mapped proximity onto Tinkerbelle’s yellow-to-blue light. The [Tinkerbelle](https://github.com/IRL-CT/tinkerbelle) tool is the FAR Lab / IRL-CT remote light we used for the third pass. The masterwork is [Rain Room](https://www.random-international.com/rain-room-2012) by Random International. Webcam motion detection stood in for their 3D tracking cameras.
 
 ---
 
@@ -246,7 +246,7 @@ wasn't clear.
 **Who were the other groups you kibitzed with? Add links to their project pages here.**
 
 - [The Traffic Light](https://github.com/MortalJin/Interactive-Lab-Hub/tree/Fall2026/Lab%201) — Yangchen Jin and Omar Shair
-- The pixel art neon light project (add Hub link)
+- The pixel art neon light project:
 
 **Summarize the feedback you got from your partners here.**
 

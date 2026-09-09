@@ -2,9 +2,9 @@
 
 _This project is to be done in teams of 2._
 
-**NAME OF BOTH COLLABORATOR(S) HERE**
+**COLLABORATORS:** Jaclyn Pham (add teammate name)
 
-**THE MASTERWORK YOU DREW FROM THE HAT:**
+**THE MASTERWORK YOU DREW FROM THE HAT:** Rain Room (Random International, 2012)
 
 ---
 
@@ -108,7 +108,7 @@ For your masterwork, reconstruct the interaction as a scene:
   the setting, not just the primary user.
   The visitors sharing the space of the installation when walking under the rain piece. 
 - **Activity:** What is happening between the players and the light?
-The person in front of the camera wants to see themselves on the screen and figure out how their movement changes it. They’re playing, testing what happens when they move fast or slow, or when they hold still. 
+The visitor walks through a field of rain-like light. They test what happens when they move fast or slow, hold still, or step closer. They are not trying to see their own face; they are trying to feel a dry pocket open around them. 
 - **Goals:** What is each player trying to do?
 The feeling of controlling the rain, of being dry in the middle of a storm. Its strength is how natural the motion detection is that reacts seamlessly with movement. 
 
@@ -119,14 +119,24 @@ don't need to be beautiful, but they must capture and communicate not only the b
 and the people around it. If you're new to storyboarding, read
 [this explanation](https://www.nngroup.com/articles/storyboards-visualize-ideas/).
 
+**Include pictures of your storyboards here.**
+
+Storyboard 1 — body on screen, rain-like blobs pushed around the silhouette:
+
 ![Storyboard](/Lab%201/lab1a-storyboard.png)
 
-**Include pictures of your storyboards here.**
+Storyboard 2 — after acting it out: camera/projector setup, still vs. motion, elements smushed around the silhouette instead of a live self-view:
+
+![Storyboard](/Lab%201/lab1b-storyboard.png)
+
+Later storyboard iterations (Drive folder): [Lab1-Liquid Motion](https://drive.google.com/drive/folders/1PRcRjMav0NMrCGIRu2mQAiCHG1PCvWv7)
 
 Use the storyboards to decide what interaction to prototype.
 
 **Summarize the feedback you got here.**
 “Motion Liquid”: We rebuilt the feel of that relationship using a webcam and motion detection instead of water. The camera watches a still scene; when a person moves, their motion becomes a rippling, water-like displacement on screen. The person is the positive space the effect responds to, and the liquid ripple stands in for Rain Room’s water, the visible trace of the boundary between the body and the element reacting to it.
+
+Classmates watching the first iteration did not understand the cue of movement — it was not obvious that *moving* was what made the rain react. We added more reactive components so motion would read immediately. For the second iteration we removed the human body from the canvas entirely (only a trail / cursor remains). For the third iteration we staged the same idea with Tinkerbelle: walking closer to the light turns it from yellow to blue, so proximity reads as the dry pocket opening in the rain.
 
 ## Part B. Act out the Interaction
 
@@ -142,8 +152,8 @@ Yes. Once we were standing in front of the camera, it became clear that any live
 
 **Are there key moments in the interaction where things could go in a different direction?**
 A few. If someone holds still, the cursor/trail can freeze and the “rain” can close back in, which is closer to Rain Room — or it can linger, which would feel more like a drawing than weather. If the body ever reappears on screen, the piece snaps back into mirror mode. Speed also splits the interaction: slow movement reads as a dry pocket following you; fast movement turns into a streak that might look like a mouse rather than a person walking through rain. Those are the beats we are still choosing between as we iterate.
-Iterate your storyboards to capture key non-sequential aspects of the interaction. 
-![Storyboard](/Lab%201/lab1b-storyboard.png)
+
+Iterate your storyboards to capture key non-sequential aspects of the interaction. We redrew for stillness vs. walking, then for “no body on the canvas,” then for proximity as a yellow-to-blue Tinkerbelle light. Those later boards and stills: [Lab1-Liquid Motion](https://drive.google.com/drive/folders/1PRcRjMav0NMrCGIRu2mQAiCHG1PCvWv7)
 
 ## Part C. Prototype the Light (light first!)
 
@@ -161,6 +171,10 @@ masterwork should you consider layering in a second modality (sound, vibration,
 motion). If in doubt, keep polishing the light. The other modalities are next
 week's business.
 
+**What we prototyped with Tinkerbelle.** The phone is the rain. Yellow is the downpour; blue is the dry pocket that opens when you enter the field. In the Tinkerbelle pass, a person walks toward the light: as the walking distance closes, the wizard (or the mapped control) turns the light from yellow to blue. That color change is the Rain Room beat — you are in the storm, then the rain yields around you.
+
+Tinkerbelle video: https://drive.google.com/file/d/1qXx91BrkMB19Rr076hatK2aJi3MfC0Hk/view
+
 ## Part D. Wizard the Device
 
 Set up a "wizard" arrangement so one person can secretly drive the light while
@@ -169,6 +183,15 @@ building any real electronics. (Zoom works well for recording; you can pin the
 video feed of whichever scene you want to capture.)
 
 **Include your first attempts at recording the wizarded set-up here.**
+
+**Iteration 1.** Webcam “Motion Liquid” with the person still visible. Classmates did not get that movement was the cue, so we pushed the reaction harder (more ripple / more of the field responding).  
+https://drive.google.com/file/d/12va8TiJYj4_cx5fHg-4fBY5YO5Ymcz47/view?usp=drive_link
+
+**Iteration 2.** Same wizarded camera setup, but the human body is gone from the canvas. Only the trail of movement remains, so it cannot be read as a mirror.  
+https://drive.google.com/file/d/1QgDi0GIhTpSE0mc1MsXllnCILRW41ft-/view?usp=drive_link
+
+**Iteration 3.** Tinkerbelle as the rain light: walk closer → yellow to blue.  
+https://drive.google.com/file/d/1qXx91BrkMB19Rr076hatK2aJi3MfC0Hk/view
 
 ## Part E. (optional) Costume the Device
 
@@ -182,7 +205,10 @@ and calm for a bedroom?
 
 **Include sketches/photos of what your device might look like here.**
 
+We did not wrap the phone in a miniature Rain Room. The “costume” is the light itself: a field that should read as weather, not as a gadget. In the storyboards that look is a projector screen of colored, water-like blobs; in the Tinkerbelle sketch it is a phone filling with yellow (rain) or blue (the dry pocket). Extra storyboard and stills live in the same Drive folder: [Lab1-Liquid Motion](https://drive.google.com/drive/folders/1PRcRjMav0NMrCGIRu2mQAiCHG1PCvWv7)
+
 **What concerns or opportunities shaped the way you designed its look?**
+Rain Room’s actual material is water, which is a bad partner for a phone. Using light as the rain lets us keep the famous relationship — the field yields around a body — without soaking hardware. The other design worry was looking like a mirror: any live video of the visitor’s face would steal the piece. So the look we committed to is *absence of the body* plus a color or ripple that follows the path. Yellow vs. blue on Tinkerbelle is a simple costume for that idea: storm, then shelter.
 
 ## Part F. Record
 
@@ -192,9 +218,17 @@ who doesn't should come away understanding what it's famous for. How might you i
 
 **Include your video here.**
 
+The video sketch that is meant to carry the masterwork is the Tinkerbelle pass: someone walks toward the light, and it turns from yellow (rain) to blue (dry). That is the non-sequential beat — it is not a timeline of “then this happens,” it is a relationship you can enter from any distance.
+
+- Tinkerbelle (video sketch): https://drive.google.com/file/d/1qXx91BrkMB19Rr076hatK2aJi3MfC0Hk/view
+- First iteration (body on screen, movement cue too weak): https://drive.google.com/file/d/12va8TiJYj4_cx5fHg-4fBY5YO5Ymcz47/view?usp=drive_link
+- Second iteration (body removed, trail only): https://drive.google.com/file/d/1QgDi0GIhTpSE0mc1MsXllnCILRW41ft-/view?usp=drive_link
+
 **Please indicate who you collaborated with on this lab.** Be generous in
 acknowledging their contributions, and credit any other influences (YouTube,
 Github, Twitter, a friend who lent you a lamp) that informed your recreation.
+
+Worked as a pair on this lab (Jaclyn Pham — add teammate). Classmates after the first iteration told us the movement cue was not readable, which is why we added stronger reactive components, then stripped the body off the canvas, then mapped proximity onto Tinkerbelle’s yellow-to-blue light. The [Tinkerbelle](https://github.com/IRL-CT/tinkerbelle) tool is the FAR Lab / IRL-CT remote light we used for the third pass. The masterwork is [Rain Room](https://www.random-international.com/rain-room-2012) by Random International. Webcam motion detection stood in for their 3D tracking cameras.
 
 ---
 
@@ -210,7 +244,17 @@ guess the masterwork and the goals of the characters, and ask about anything tha
 wasn't clear.
 
 **Who were the other groups you kibitzed with? Add links to their project pages here.**
+
+- [The Traffic Light](https://github.com/MortalJin/Interactive-Lab-Hub/tree/Fall2026/Lab%201) — Yangchen Jin and Omar Shair
+- The pixel art neon light project (add Hub link)
+
 **Summarize the feedback you got from your partners here.**
+
+**What we saw on their pages.** Both pieces are super cool. The Traffic Light group staged a very readable street scene: red / yellow / green as stop, ready, go, with pedestrians and drivers as the players. Their first pass used a traffic-light app rather than Tinkerbelle, and the interaction was still instantly recognizable as a crossing. The pixel art neon light project was visually strong in a different way — the glow and the “screen as sign” feeling came through even without a Tinkerbelle phone in the frame.
+
+**What wasn’t clear — for them, and for us.** Watching those Hubs, and talking in studio, it felt like the whole class was still confused about what this lab is *for*. The write-up asks for a wizarded Tinkerbelle light, but none of us (Traffic Light, pixel-art neon, or our Rain Room pass) showed a prototype that was obviously driven with Tinkerbelle in the first round. We all reached for whatever made the masterwork legible: an app, a webcam field, a neon graphic. The gap is not that the pieces are weak; it is that the assignment’s tool (a remotely controlled phone-light) and the thing we actually needed to prove (the interaction someone would recognize) did not line up in anyone’s first video.
+
+**Feedback on our Rain Room piece.** Classmates still said the first Motion Liquid pass did not make movement the obvious cue. That is why we added more reactive components, then took the body off the canvas, and only later mapped walking-closer onto a Tinkerbelle yellow-to-blue light — after seeing that nobody else had used Tinkerbelle either.
 
 ## Remix, Update, or Critique the Master
 

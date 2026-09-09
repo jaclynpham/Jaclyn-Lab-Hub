@@ -135,11 +135,15 @@ is doing what you've scripted — a person can wave a flashlight, or you can nar
 it aloud.
 
 **Are there things that seemed better on paper than when acted out?**
+On paper, putting the person on screen felt like the obvious way to show the Rain Room relationship: you move, the “rain” reacts around you. Acting it out, that readout did not hold. Seeing your own face and body on the canvas read as a webcam mirror, not as weather making space for you. Classmates also pointed out that the sketch was missing the factors that actually make Rain Room recognizable — the dry pocket, the trail of absence in the downpour — so we updated the storyboard to mimic that rain interaction instead of a self-view.
 
 **Did new ideas about the piece surface once you were on your feet?**
+Yes. Once we were standing in front of the camera, it became clear that any live reflection of the body would be read as a mirror, which is the opposite of what we want. The new idea was to take the human physical appearance off the canvas entirely and leave only the trail of movement. Right now that trail is represented as a cursor: the person is gone from the image, but their path through the space is still visible, and that path is what the rain-like effect can follow.
 
 **Are there key moments in the interaction where things could go in a different direction?**
+A few. If someone holds still, the cursor/trail can freeze and the “rain” can close back in, which is closer to Rain Room — or it can linger, which would feel more like a drawing than weather. If the body ever reappears on screen, the piece snaps back into mirror mode. Speed also splits the interaction: slow movement reads as a dry pocket following you; fast movement turns into a streak that might look like a mouse rather than a person walking through rain. Those are the beats we are still choosing between as we iterate.
 Iterate your storyboards to capture key non-sequential aspects of the interaction. 
+![Storyboard](/Lab%201/lab1b-storyboard.png)
 
 ## Part C. Prototype the Light (light first!)
 

@@ -1,6 +1,6 @@
 # Chatterboxes
 
-**NAMES OF COLLABORATORS HERE**
+**Jaclyn Pham (cqp4)**
 
 [![Watch the video](https://user-images.githubusercontent.com/1128669/135009222-111fe522-e6ba-46ad-b6dc-d1633d21129c.png)](https://youtu.be/LZ0VJClIlRI?si=Yy84mcyVYuVV19mn)
 
@@ -107,9 +107,11 @@ Note that the Piper command line changed in version 1.x — voices are now downl
 The demo script also shows `--output-raw`, which streams audio to the speaker as it is generated rather than writing a file first. Listen for the difference in how quickly speech begins. In a conversational system this gap is the thing your user experiences as responsiveness.
 
 \*\***Write your own shell file to use your favorite of these TTS engines to have your Pi greet you by name.**\*\*
-(This shell file should be saved to your own repo for this lab.)
+Shell file exists in jaclyn_piper.sh
 
 \*\***Then answer: Is the same greeting, in these different voices, the same greeting? Describe one concrete way the voice changed what the utterance seemed to mean or who seemed to be speaking.**\*\*
+IN different voice, the speed of the greeting varies based on the annunciation of the word. 
+
 
 ## B. Speech to Text
 
@@ -131,7 +133,15 @@ Available sizes, smallest first: `tiny.en`, `base.en`, `small.en`, `medium.en`. 
 
 \*\***Record a few seconds of your own speech (`arecord -d 5 -f cd -c 1 -r 16000 test.wav`) and transcribe it with at least two model sizes. Report the real-time factor for each. At what point does the accuracy improvement stop being worth the delay, for a system that has to answer you?**\*\*
 
+On a clean 5.00s clip, base.en transcribed in 1.85s (real-time factor 0.37x) and small.en in 5.07s (RTF 1.01x), where RTF is processing time ÷ audio duration. base.en was actually the more accurate of the two here — it kept the digits and punctuation ("Testing, testing 1, 2, 3, testing.") while small.en spelled the numbers out and dropped punctuation ("testing one two three testing") — so the larger model cost ~2.7x the compute for a worse result. For a system that has to answer you, total latency (endpoint silence + transcription + reply + speech out) needs to stay under about 1–2 seconds or the pause reads as broken, so accuracy stops being worth the delay once a model's RTF approaches ~0.5x on the Pi. small.en at 1.01x blows that budget outright, making you wait the length of your own sentence again before it even replies. On the Pi I'd run base.en (or tiny.en) — especially for my mansplainer, where interruptions fire off the voice-activity detector rather than the transcript, so speed matters far more than transcription accuracy.
+
 \*\***Write your own script that verbally asks for a numerical input (a phone number, zipcode, number of pets) and records the answer the respondent provides.**\*\* Numbers are a good stress test — transcription systems make characteristic errors on digit strings, and you will want to know what they are before you design around them.
+
+Playing WAVE 'question.wav' : Signed 16 bit Little Endian, Rate 22050 Hz, Mono
+Asked: "What is your phone number?"
+Recording for 7s... speak now.
+Recording WAVE 'answer.wav' : Signed 16 bit Little Endian, Rate 16000 Hz, Mono
+Heard: "814-234-2301"
 
 ## C. Turn-taking: knowing when someone has stopped talking
 

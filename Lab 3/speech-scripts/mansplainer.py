@@ -31,7 +31,7 @@ from piper import PiperVoice
 SAMPLE_RATE = 16000
 LAB_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_VAD = LAB_DIR / "models" / "silero_vad.onnx"
-DEFAULT_VOICE = LAB_DIR / "voices" / "en_GB-northern_english_male-medium.onnx"
+DEFAULT_VOICE = LAB_DIR / "voices" / "en_US-lessac-medium.onnx"
 
 # Canned openers, played the instant you pause. These carry the joke on their
 # own, so the device still works with --no-transcribe.

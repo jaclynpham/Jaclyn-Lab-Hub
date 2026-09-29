@@ -16,7 +16,7 @@ VOICES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/voices"
 
 # Synthesize to a file, then play it.
 python3 -m piper \
-  --model en_US-lessac-medium \
+  --model en_GB-cori-high \
   --data-dir "$VOICES_DIR" \
   --output-file welcome.wav \
   -- "Welcome to the world of speech synthesis."
@@ -25,7 +25,7 @@ aplay welcome.wav
 # Stream straight to the speaker instead — lower latency, because playback
 # starts before the whole sentence is synthesized. Listen for the difference.
 python3 -m piper \
-  --model en_US-lessac-medium \
+  --model en_GB-cori-high \
   --data-dir "$VOICES_DIR" \
   --output-raw \
   -- "This sentence is spoken first. This one is synthesized while you hear it." \
@@ -33,7 +33,7 @@ python3 -m piper \
 
 # Same text, slower and quieter — Piper exposes prosody knobs:
 python3 -m piper \
-  --model en_US-lessac-medium \
+  --model en_GB-cori-high \
   --data-dir "$VOICES_DIR" \
   --length-scale 1.4 \
   --volume 0.6 \

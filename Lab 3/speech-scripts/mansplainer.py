@@ -3,23 +3,35 @@
 
 Same stack as listen.py / echo_bot.py:
   - sherpa_onnx Silero VAD for endpointing
-  - faster-whisper for (optional) transcription
+  - faster-whisper for transcription
   - Piper for speech out
 
-The trick is the endpointing threshold. Crank --min-silence way down: the VAD
-then emits your utterance the instant you take a breath, and we pounce before
-you can continue. If you named something we know, the reply is a fun fact
-about it. Otherwise it paraphrases the point instead of quoting you.
+--min-silence is how long a breath has to last before we talk. Understanding
+starts while you are still talking: a side thread transcribes the audio so
+far and fetches the opening sentence of the Wikipedia page for the longest
+content word. The breath only has to start playback.
 
-    python mansplainer.py                    # pounces after 0.2s of silence
-    python mansplainer.py --min-silence 0.15 # insufferable
-    python mansplainer.py --no-transcribe    # pure canned interrupts, zero ASR lag
+A missing page, or a lookup that takes longer than 1.2s, falls back to a
+paraphrase, so a dead network still finishes the turn. The fetch needs Wi-Fi
+on the Pi. A hit is usually a few tenths of a second; the timeout is the
+worst case, and it only bites when nothing was cached while you were talking.
+
+    python mansplainer.py
+    python mansplainer.py --min-silence 0.15   # insufferable
+    python mansplainer.py --partial 0.4        # transcribe sooner, more often
+    python mansplainer.py --no-transcribe      # canned interrupts, no ASR
 """
 
 import argparse
+import json
 import random
 import re
 import sys
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -72,98 +84,10 @@ _STOP = {
     "should", "could", "would", "can", "will", "shall", "might", "must",
 }
 
-# Longer keys first so "new york" wins over a shorter overlap.
-FUN_FACTS: list[tuple[tuple[str, ...], tuple[str, ...]]] = [
-    (("new york", "nyc", "manhattan"), (
-        "The first New York subway line opened in 1904 and was only about nine miles long.",
-        "Manhattan's street grid was drawn in 1811, which is why the avenues ignore the old village paths.",
-    )),
-    (("subway", "train", "metro"), (
-        "The word subway and the word metro name the same idea. Metro is short for metropolitan railway.",
-        "The busiest subway systems move more people in a day than many airlines move in a year.",
-    )),
-    (("coffee", "espresso", "latte", "caffeine"), (
-        "Coffee was eaten before it was brewed. People in Ethiopia mixed the berries with fat.",
-        "Decaf coffee was an accident. A shipment got soaked in seawater, and the beans had lost their caffeine.",
-    )),
-    (("tea",), (
-        "Tea bags were a packaging accident. A merchant sent samples in silk pouches, and people brewed the pouch.",
-        "A cup of tea steeps better with cooler water than people use. Boiling water burns green tea.",
-    )),
-    (("pizza",), (
-        "Pizza margherita was named in 1889 for Queen Margherita, using the red, white, and green of the Italian flag.",
-        "The tomato sat on the table in Europe for a long time as an ornamental plant before anyone trusted it on bread.",
-    )),
-    (("banana", "bananas"), (
-        "A banana is a berry. A strawberry is not. Berries, botanically, come from one flower with one ovary.",
-        "The bananas in stores are almost all one clone, Cavendish, which is why a single disease can threaten the crop.",
-    )),
-    (("apple", "apples"), (
-        "Apples float because about a quarter of their volume is air.",
-        "The apple you buy is a clone. Every Honeycrisp is a cutting from an older tree, not a new seedling.",
-    )),
-    (("honey",), (
-        "Honey does not spoil. Jars from Egyptian tombs were still edible thousands of years later.",
-    )),
-    (("food", "hungry", "lunch", "dinner", "breakfast"), (
-        "Taste is mostly smell. Pinch your nose and an apple and a potato are hard to tell apart.",
-    )),
-    (("dog", "dogs", "puppy"), (
-        "A dog's nose print is unique, the way a fingerprint is.",
-        "Dogs can hear about twice as high a pitch as people can, which is why a silent whistle is only silent to you.",
-    )),
-    (("cat", "cats", "kitten"), (
-        "Cats sleep about seventy percent of their lives. The nap you are watching is the default state.",
-        "A cat's purr sits at a frequency that can promote bone healing. It is not only a mood.",
-    )),
-    (("sleep", "tired", "nap"), (
-        "You cannot fully bank sleep. An all-nighter is not repaid by one long morning.",
-        "Dolphins sleep with one half of the brain at a time, so they can keep surfacing to breathe.",
-    )),
-    (("phone", "iphone", "text", "texting"), (
-        "The first text message was sent in 1992. It said merry christmas.",
-        "Early mobile phones were called bricks because the battery was most of the object.",
-    )),
-    (("computer", "laptop", "keyboard"), (
-        "The first computer bug was a real moth, found in a Harvard relay in 1947 and taped into the logbook.",
-    )),
-    (("wifi", "internet", "wi-fi"), (
-        "Wi-Fi does not officially stand for wireless fidelity. The name was a brand, picked to sound like hi-fi.",
-        "The first message sent over the internet's ancestor was supposed to be login. The system crashed after lo.",
-    )),
-    (("ai", "robot", "chatgpt"), (
-        "The word robot comes from the Czech robota, meaning forced labor. It showed up in a 1920 play.",
-        "Most of what people call artificial intelligence is pattern matching at a huge scale, not a stored list of facts.",
-    )),
-    (("music", "song", "spotify"), (
-        "An earworm sticks because the brain keeps predicting the next note and won't close the loop.",
-        "The same song feels faster when you are anxious. Tempo did not change. Your clock did.",
-    )),
-    (("rain", "raining", "weather"), (
-        "The smell of rain has a name, petrichor. It is oils from plants plus a compound from soil bacteria.",
-        "Raindrops are not tear-shaped. They fall as flattened spheres, wider than they are tall.",
-    )),
-    (("cornell", "ithaca"), (
-        "Cornell was founded in 1865. Ezra Cornell's line was that he would found an institution where any person can find instruction in any study.",
-    )),
-    (("school", "class", "homework", "lecture"), (
-        "The word school comes from the Greek skhole, which meant leisure. Study was what you did with free time.",
-    )),
-    (("time", "clock", "hour"), (
-        "A day is not exactly twenty-four hours. Earth takes about four minutes longer to spin once than a civil clock admits.",
-        "Leap seconds exist because the planet's spin does not match the atomic clocks we actually keep time with.",
-    )),
-    (("water",), (
-        "You can drink too much water. The danger is diluting the sodium in your blood, not the water itself.",
-    )),
-    (("moon",), (
-        "The Moon is moving away from Earth by a little under four centimeters a year.",
-        "The same side of the Moon always faces Earth because its spin and its orbit take the same amount of time.",
-    )),
-    (("money", "dollar", "cash"), (
-        "The dollar sign probably comes from a written abbreviation of pesos, not from a drawing of a pillar.",
-    )),
-]
+_WIKI = "https://en.wikipedia.org/api/rest_v1/page/summary/"
+_fact_cache: dict[str, str | None] = {}
+_fact_lock = threading.Lock()
+_fact_wait: dict[str, threading.Event] = {}
 
 _PARAPHRASES = (
     "The shorter version is that this is about {topic}, and the long version was mostly decoration.",
@@ -197,15 +121,81 @@ def _topic(heard: str) -> str:
     return f"{salient[0]} and {salient[1]}"
 
 
-def _fun_fact(heard: str) -> str | None:
-    text = heard.lower()
-    hits: list[str] = []
-    for keys, facts in FUN_FACTS:
-        if any(re.search(rf"\b{re.escape(key)}\b", text) for key in keys):
-            hits.extend(facts)
-    if not hits:
+def _keyword(heard: str) -> str | None:
+    """The single most salient content word — the thing to look up."""
+    words = re.findall(r"[a-z0-9']+", heard.lower())
+    kept = [w for w in words if w not in _STOP and len(w) > 2]
+    if not kept:
         return None
-    return random.choice(hits)
+    return max(kept, key=len)
+
+
+def _fetch_summary(term: str, timeout: float) -> tuple[str | None, bool]:
+    """Return (first sentence or None, whether that result is worth caching).
+
+    A missing page stays cached. A network hiccup does not, so the next
+    breath can try again once Wi-Fi is back.
+    """
+    try:
+        url = _WIKI + urllib.parse.quote(term, safe="")
+        req = urllib.request.Request(url, headers={"User-Agent": "mansplainer-lab/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.load(resp)
+        if data.get("type") == "disambiguation":
+            return None, True
+        extract = (data.get("extract") or "").strip()
+        if not extract:
+            return None, True
+        return re.split(r"(?<=[.!?])\s", extract)[0], True
+    except urllib.error.HTTPError as exc:
+        return None, exc.code == 404
+    except Exception:
+        return None, False
+
+
+def _live_fact(heard: str, timeout: float = 1.2) -> str | None:
+    """Opening sentence of the Wikipedia summary for the topic word.
+
+    Callers looking up the same word share one request.
+    """
+    term = _keyword(heard)
+    if not term:
+        return None
+
+    with _fact_lock:
+        if term in _fact_cache:
+            return _fact_cache[term]
+        wait = _fact_wait.get(term)
+        if wait is None:
+            wait = threading.Event()
+            _fact_wait[term] = wait
+            owner = True
+        else:
+            owner = False
+
+    if not owner:
+        wait.wait(timeout + 0.3)
+        with _fact_lock:
+            return _fact_cache.get(term)
+
+    fact, cacheable = _fetch_summary(term, timeout)
+    with _fact_lock:
+        if cacheable:
+            _fact_cache[term] = fact
+        _fact_wait.pop(term, None)
+    wait.set()
+    return fact
+
+
+def _prefetch(heard: str) -> None:
+    """Start the Wikipedia fetch now, so the breath doesn't have to."""
+    term = _keyword(heard)
+    if not term:
+        return
+    with _fact_lock:
+        if term in _fact_cache or term in _fact_wait:
+            return
+    threading.Thread(target=_live_fact, args=(heard,), daemon=True).start()
 
 
 def _paraphrase(heard: str) -> str:
@@ -219,8 +209,159 @@ def mansplain(heard: str | None) -> str:
     opener = random.choice(OPENERS)
     if not heard:
         return opener
-    body = _fun_fact(heard) or _paraphrase(heard)
+    body = _live_fact(heard) or _paraphrase(heard)
     return f"{opener} {body}"
+
+
+def _transcribe(recognizer: WhisperModel, audio: np.ndarray) -> str | None:
+    if len(audio) < int(0.15 * SAMPLE_RATE):
+        return None
+    segments, _ = recognizer.transcribe(
+        audio,
+        beam_size=1,
+        language="en",
+        without_timestamps=True,
+        condition_on_previous_text=False,
+    )
+    text = " ".join(seg.text.strip() for seg in segments).strip()
+    return text or None
+
+
+class Transcriber:
+    """faster-whisper on a side thread, over the words still being said.
+
+    The model decodes a clip; it does not emit a word at a time. Every
+    `partial` seconds of new speech we decode the utterance so far and start
+    the Wikipedia fetch. When the VAD hears a breath, that line is usually
+    already in hand.
+    """
+
+    def __init__(self, recognizer: WhisperModel | None, partial: float) -> None:
+        self._recognizer = recognizer
+        self._partial_n = int(max(partial, 0.3) * SAMPLE_RATE)
+        self._cv = threading.Condition()
+        self._frames: list[np.ndarray] = []
+        self._n = 0
+        self._heard: str | None = None
+        self._heard_n = 0
+        self._job: np.ndarray | None = None
+        self._busy = False
+        self._busy_gen = -1
+        self._gen = 0
+        if recognizer is not None:
+            threading.Thread(target=self._loop, name="live-whisper", daemon=True).start()
+
+    def extend(self, frame: np.ndarray) -> None:
+        if self._recognizer is None or len(frame) == 0:
+            return
+        with self._cv:
+            self._frames.append(np.array(frame, dtype=np.float32, copy=True))
+            self._n += len(frame)
+            self._schedule_locked()
+
+    def latest(self) -> str | None:
+        with self._cv:
+            return self._heard
+
+    def has_audio(self) -> bool:
+        with self._cv:
+            return self._n > 0 or self._heard is not None
+
+    def reset(self) -> None:
+        with self._cv:
+            self._clear_locked()
+
+    def take(self, final: np.ndarray) -> str | None:
+        """Transcript for the utterance that just ended.
+
+        A partial that already landed is used as soon as nothing newer is
+        in flight. Otherwise the finished clip is decoded here — that path
+        is the short utterance, the one that ended before the first partial.
+        """
+        if self._recognizer is None:
+            return None
+        with self._cv:
+            # A decode already running has nearly the whole turn. Wait briefly
+            # so the breath isn't spent on a clip we meant to finish while
+            # they were still talking. Past the grace period, speak anyway.
+            self._wait_pending_locked(1.2 if self._heard is None else 0.35)
+
+            if not self._heard and not self._pending_locked():
+                audio = np.array(final, dtype=np.float32, copy=True)
+                self._frames = [audio]
+                self._n = len(audio)
+                self._heard_n = 0
+                self._job = audio
+                self._cv.notify()
+
+            deadline = time.monotonic() + 2.0
+            while not self._heard and self._pending_locked() and time.monotonic() < deadline:
+                self._cv.wait(timeout=0.05)
+
+            text = self._heard
+            self._clear_locked()
+            return text
+
+    def _pending_locked(self) -> bool:
+        return self._job is not None or (self._busy and self._busy_gen == self._gen)
+
+    def _wait_pending_locked(self, grace: float) -> None:
+        if not self._pending_locked():
+            return
+        deadline = time.monotonic() + grace
+        while self._pending_locked() and time.monotonic() < deadline:
+            self._cv.wait(timeout=0.05)
+
+    def _schedule_locked(self) -> None:
+        if self._busy or self._job is not None:
+            return
+        if self._n - self._heard_n < self._partial_n or not self._frames:
+            return
+        self._job = np.concatenate(self._frames)
+        self._cv.notify()
+
+    def _clear_locked(self) -> None:
+        self._frames = []
+        self._n = 0
+        self._heard = None
+        self._heard_n = 0
+        self._job = None
+        self._gen += 1
+        self._cv.notify_all()
+
+    def _loop(self) -> None:
+        assert self._recognizer is not None
+        while True:
+            with self._cv:
+                while self._job is None:
+                    self._cv.wait()
+                audio = self._job
+                gen = self._gen
+                end_n = self._n
+                self._job = None
+                self._busy = True
+                self._busy_gen = gen
+
+            try:
+                text = _transcribe(self._recognizer, audio)
+            except Exception as exc:
+                print(f"  (whisper) {exc}", file=sys.stderr)
+                text = None
+
+            with self._cv:
+                fresh = gen == self._gen
+            if text and fresh:
+                _prefetch(text)
+
+            with self._cv:
+                if gen == self._gen:
+                    if text:
+                        self._heard = text
+                    self._heard_n = end_n
+                self._busy = False
+                if gen == self._gen:
+                    self._schedule_locked()
+                self._cv.notify_all()
 
 
 class Speaker:
@@ -247,6 +388,8 @@ def main() -> None:
                         help="silence that ends your turn; low = rude (default: 0.2)")
     parser.add_argument("--min-speech", type=float, default=0.25,
                         help="ignore speech bursts shorter than this (default: 0.25)")
+    parser.add_argument("--partial", type=float, default=0.5,
+                        help="seconds of new speech between live transcriptions (default: 0.5)")
     parser.add_argument("--no-transcribe", action="store_true",
                         help="skip whisper entirely; canned interrupts only")
     args = parser.parse_args()
@@ -259,6 +402,7 @@ def main() -> None:
     speaker = Speaker(args.voice)
     recognizer = None if args.no_transcribe else \
         WhisperModel(args.model, device="cpu", compute_type="int8")
+    ear = Transcriber(recognizer, args.partial)
 
     config = sherpa_onnx.VadModelConfig()
     config.silero_vad.model = str(args.vad_model)
@@ -268,10 +412,16 @@ def main() -> None:
     vad = sherpa_onnx.VoiceActivityDetector(config, buffer_size_in_seconds=30)
     window = config.silero_vad.window_size
 
-    print(f"Ready. Try to say something (I pounce after {args.min_silence}s). Ctrl-C to stop.\n")
+    if recognizer is not None and not hasattr(vad, "is_speech_detected"):
+        sys.exit("This sherpa-onnx build has no VAD.is_speech_detected(); "
+                 "upgrade sherpa-onnx to 1.10 or newer.")
+
+    print(f"Ready. Try to say something (I pounce after {args.min_silence}s, "
+          f"and I transcribe while you talk). Ctrl-C to stop.\n")
 
     buffer = np.empty(0, dtype=np.float32)
     samples_per_read = int(0.1 * SAMPLE_RATE)
+    shown: str | None = None
 
     with sd.InputStream(channels=1, dtype="float32", samplerate=SAMPLE_RATE) as stream:
         while True:
@@ -279,20 +429,30 @@ def main() -> None:
             buffer = np.concatenate([buffer, chunk.reshape(-1)])
 
             while len(buffer) > window:
-                vad.accept_waveform(buffer[:window])
+                frame = buffer[:window]
                 buffer = buffer[window:]
+                vad.accept_waveform(frame)
+
+                if recognizer is not None and vad.is_speech_detected():
+                    ear.extend(frame)
+                elif ear.has_audio() and vad.empty():
+                    # A blip too short to be a turn. Drop it so the next
+                    # sentence is transcribed on its own.
+                    ear.reset()
+                    shown = None
+
+            live = ear.latest()
+            if live and live != shown:
+                shown = live
+                print(f"  (hearing) {live}", flush=True)
 
             while not vad.empty():
                 utterance = np.array(vad.front.samples, dtype=np.float32)
                 vad.pop()
 
-                heard = None
-                if recognizer is not None:
-                    segments, _ = recognizer.transcribe(utterance, beam_size=1)
-                    heard = " ".join(s.text.strip() for s in segments).strip() or None
-
+                heard = ear.take(utterance)
                 reply = mansplain(heard)
-                print(f"  (you paused) -> {reply}")
+                print(f"  (you paused) -> {reply}", flush=True)
                 speaker.say(reply)
 
                 # Drop anything the mic caught while we were talking, so the
@@ -300,6 +460,8 @@ def main() -> None:
                 while not vad.empty():
                     vad.pop()
                 buffer = np.empty(0, dtype=np.float32)
+                ear.reset()
+                shown = None
 
 
 if __name__ == "__main__":

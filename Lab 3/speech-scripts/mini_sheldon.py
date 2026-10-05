@@ -87,6 +87,8 @@ OPENERS = [
     "Bazinga.",
 ]
 
+GOODBYE_LINE = "You'll be back. Knowledge is addictive. Bazinga."
+
 # Words that don't carry the point. Dropped so a paraphrase isn't your sentence again.
 _STOP = {
     "a", "an", "the", "i", "you", "we", "they", "he", "she", "it", "me", "my",
@@ -127,33 +129,50 @@ _GENERIC = (
 )
 
 
-def _topic(heard: str) -> str:
-    """One or two content words, not a clip of the original sentence."""
-    words = re.findall(r"[a-z0-9']+", heard.lower())
-    kept = []
-    for w in words:
-        if w in _STOP or len(w) <= 2 or w in kept:
-            continue
-        kept.append(w)
-    if not kept:
-        return ""
-    # Longest words are the ones carrying the point. Keep at most two.
-    salient = sorted(kept, key=len, reverse=True)[:2]
-    if len(salient) == 1:
-        return salient[0]
-    return f"{salient[0]} and {salient[1]}"
-
-
-def _keywords(heard: str, limit: int = 3) -> list[str]:
-    """Content words worth a Wikipedia lookup, longest first."""
+def _content_words(heard: str) -> list[str]:
+    """Content words in the order they were said."""
     words = re.findall(r"[a-z0-9']+", heard.lower())
     kept: list[str] = []
     for w in words:
         if w in _STOP or len(w) <= 2 or w in kept:
             continue
         kept.append(w)
-    kept.sort(key=len, reverse=True)
-    return kept[:limit]
+    return kept
+
+
+def _subject_phrase(heard: str | None) -> str | None:
+    """The topic of the sentence: the last content words, not the longest one.
+
+    In "I keep thinking about black holes", the subject is "black holes".
+    The longest word in a ramble is often a stray adjective.
+    """
+    if not heard:
+        return None
+    words = _content_words(heard)
+    if not words:
+        return None
+    return " ".join(words[-2:])
+
+
+def _topic(heard: str) -> str:
+    """One or two content words, not a clip of the original sentence."""
+    phrase = _subject_phrase(heard)
+    if not phrase:
+        return ""
+    words = phrase.split()
+    if len(words) == 1:
+        return words[0]
+    return f"{words[0]} and {words[1]}"
+
+
+def _is_goodbye(heard: str | None) -> bool:
+    """The sign-off line, allowing for a slightly mangled transcript."""
+    if not heard:
+        return False
+    text = re.sub(r"good\s*bye", "goodbye", heard.lower())
+    words = set(re.findall(r"[a-z']+", text))
+    bye = "goodbye" in text or "bye" in words
+    return "sheldon" in words and (bye or "annoying" in words)
 
 
 def _wiki_get(url: str, timeout: float) -> dict | list | None:
@@ -204,36 +223,48 @@ def _search_titles(term: str, timeout: float) -> list[str]:
     return [title for title in data[1] if isinstance(title, str)]
 
 
-def _resolve(term: str, timeout: float) -> tuple[str | None, bool]:
-    """Fact for one word, and whether a miss should be remembered.
+def _title_overlaps(title: str, query: str) -> bool:
+    """The page has to share a word with what was said.
 
-    'Stay' is a disambiguation page, so a direct summary comes back empty.
-    The search result after it is a real article, and that sentence is used.
+    A search for a misheard fragment will happily return Goshen or
+    Thanksgiving. Those titles share nothing with the query, so they are dropped.
     """
-    fact, status = _fetch_summary(term, timeout)
+    title_words = set(re.findall(r"[a-z0-9']+", title.lower()))
+    return bool(title_words & set(_content_words(query)))
+
+
+def _matching_fact(query: str, timeout: float) -> tuple[str | None, bool]:
+    """A summary whose title is actually about `query`."""
+    fact, status = _fetch_summary(query, timeout)
     if fact:
         return fact, True
     if status == "error":
         return None, False
-    if status == "disambiguation":
-        for title in _search_titles(term, timeout):
-            if title.casefold() == term.casefold():
-                continue
-            fact, status = _fetch_summary(title, timeout)
-            if fact:
-                return fact, True
-            if status == "error":
-                return None, False
+    for title in _search_titles(query, timeout):
+        if not _title_overlaps(title, query):
+            continue
+        fact, status = _fetch_summary(title, timeout)
+        if fact:
+            return fact, True
+        if status == "error":
+            return None, False
     return None, status == "missing"
 
 
 def _live_fact(heard: str, timeout: float = 1.2) -> str | None:
-    """Opening sentence of a Wikipedia summary for what was just said.
+    """Opening sentence of a Wikipedia summary for the subject of the sentence.
 
-    Tries the longest content words in order. Callers looking up the same
-    word share one request.
+    Callers looking up the same phrase share one request.
     """
-    for term in _keywords(heard):
+    phrase = _subject_phrase(heard)
+    if not phrase:
+        return None
+    queries = [phrase]
+    last = phrase.split()[-1]
+    if last != phrase:
+        queries.append(last)
+
+    for term in queries:
         with _fact_lock:
             if term in _fact_cache:
                 cached = _fact_cache[term]
@@ -256,7 +287,7 @@ def _live_fact(heard: str, timeout: float = 1.2) -> str | None:
                 return cached
             continue
 
-        fact, cacheable = _resolve(term, timeout)
+        fact, cacheable = _matching_fact(term, timeout)
         with _fact_lock:
             if cacheable:
                 _fact_cache[term] = fact
@@ -269,7 +300,7 @@ def _live_fact(heard: str, timeout: float = 1.2) -> str | None:
 
 def _prefetch(heard: str) -> None:
     """Start the Wikipedia fetch now, so the breath doesn't have to."""
-    if not _keywords(heard):
+    if not _subject_phrase(heard):
         return
     threading.Thread(target=_live_fact, args=(heard,), daemon=True).start()
 
@@ -362,27 +393,33 @@ class Transcriber:
     def take(self, final: np.ndarray) -> str | None:
         """Transcript for the utterance that just ended.
 
-        A partial that already landed is used as soon as nothing newer is
-        in flight. Otherwise the finished clip is decoded here — that path
-        is the short utterance, the one that ended before the first partial.
+        A partial that already covers the clip is used immediately. If the
+        last stretch was never decoded, that stretch is transcribed too,
+        because the subject is often the last word.
         """
         if self._recognizer is None:
             return None
+        final = np.array(final, dtype=np.float32, copy=True)
         with self._cv:
-            # A decode already running has nearly the whole turn. Wait briefly
-            # so the breath isn't spent on a clip we meant to finish while
-            # they were still talking. Past the grace period, speak anyway.
-            self._wait_pending_locked(1.2 if self._heard is None else 0.35)
-
-            if not self._heard and not self._pending_locked():
-                audio = np.array(final, dtype=np.float32, copy=True)
-                self._frames = [audio]
-                self._n = len(audio)
+            tail = len(final) - self._heard_n
+            if tail > int(0.45 * SAMPLE_RATE):
+                self._heard = None
+                self._frames = [final]
+                self._n = len(final)
                 self._heard_n = 0
-                self._job = audio
+                self._job = final
+                self._gen += 1
                 self._cv.notify()
+            else:
+                self._wait_pending_locked(1.2 if self._heard is None else 0.35)
+                if not self._heard and not self._pending_locked():
+                    self._frames = [final]
+                    self._n = len(final)
+                    self._heard_n = 0
+                    self._job = final
+                    self._cv.notify()
 
-            deadline = time.monotonic() + 2.0
+            deadline = time.monotonic() + 2.5
             while not self._heard and self._pending_locked() and time.monotonic() < deadline:
                 self._cv.wait(timeout=0.05)
 
@@ -481,6 +518,12 @@ def _discard_input(stream: sd.InputStream) -> None:
         time.sleep(0.05)
 
 
+def _farewell(speaker: Speaker, stream: sd.InputStream) -> None:
+    print(f"  (goodbye) -> {GOODBYE_LINE}", flush=True)
+    speaker.say(GOODBYE_LINE)
+    _discard_input(stream)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -515,6 +558,8 @@ def main() -> None:
     config.silero_vad.model = str(args.vad_model)
     config.silero_vad.min_silence_duration = args.min_silence
     config.silero_vad.min_speech_duration = args.min_speech
+    if hasattr(config.silero_vad, "threshold"):
+        config.silero_vad.threshold = 0.35
     config.sample_rate = SAMPLE_RATE
     vad = sherpa_onnx.VoiceActivityDetector(config, buffer_size_in_seconds=30)
     window = config.silero_vad.window_size
@@ -536,6 +581,8 @@ def main() -> None:
     listening = False
     statement: list[np.ndarray] = []
     tail_silence = 0.0
+    held: list[np.ndarray] = []
+    held_silence = 0.0
     last_reply = ""
 
     with sd.InputStream(channels=1, dtype="float32", samplerate=SAMPLE_RATE) as stream:
@@ -560,6 +607,8 @@ def main() -> None:
 
                 if listening and statement and not speaking and vad.empty():
                     tail_silence += len(frame) / SAMPLE_RATE
+                elif held and not speaking and vad.empty():
+                    held_silence += len(frame) / SAMPLE_RATE
 
             live = ear.latest()
             if live and live != shown:
@@ -576,20 +625,26 @@ def main() -> None:
                     tail_silence = 0.0
                     continue
 
-                heard = ear.take(utterance)
-                if recognizer is not None and not heard:
-                    # A breath or a noise ended the turn with no words.
-                    print("  (no words in that clip)", flush=True)
+                held.append(utterance)
+                heard = ear.take(np.concatenate(held)) if recognizer is not None else None
+                held_silence = 0.0
+                if _is_goodbye(heard):
+                    _farewell(speaker, stream)
+                    return
+                if _echoes(heard, last_reply):
+                    held = []
                     ear.reset()
                     shown = None
                     continue
-                if _echoes(heard, last_reply):
-                    ear.reset()
-                    shown = None
+                if recognizer is not None and not _subject_phrase(heard):
+                    # Breath landed before the topic. Keep this audio and wait.
+                    print(f"  (still catching) {heard or '...'}", flush=True)
                     continue
 
                 reply = mansplain(heard)
-                print(f"  (you paused) -> {reply}", flush=True)
+                phrase = _subject_phrase(heard)
+                label = f" [{phrase}]" if phrase else ""
+                print(f"  (you paused){label} -> {reply}", flush=True)
                 speaker.say(reply)
                 last_reply = reply
                 _discard_input(stream)
@@ -600,12 +655,24 @@ def main() -> None:
                 ear.reset()
                 shown = None
                 statement = []
+                held = []
                 tail_silence = 0.0
+                held_silence = 0.0
                 listening = True
                 print("  (your turn - I'll wait until you finish)", flush=True)
 
+            if not listening and held and held_silence >= statement_gap:
+                print("  (no subject in that, still here)", flush=True)
+                held = []
+                held_silence = 0.0
+                ear.reset()
+                shown = None
+
             if listening and statement and tail_silence >= statement_gap:
                 heard = ear.take(np.concatenate(statement))
+                if _is_goodbye(heard):
+                    _farewell(speaker, stream)
+                    return
                 if _echoes(heard, last_reply):
                     print("  (that was me, still listening)", flush=True)
                     statement = []

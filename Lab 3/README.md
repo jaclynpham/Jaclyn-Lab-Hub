@@ -1,247 +1,153 @@
 # Chatterboxes
 
-**Jaclyn Pham (cqp4)**
-
-[![Watch the video](https://user-images.githubusercontent.com/1128669/135009222-111fe522-e6ba-46ad-b6dc-d1633d21129c.png)](https://youtu.be/LZ0VJClIlRI?si=Yy84mcyVYuVV19mn)
-
-In this lab, we want you to design interaction with a speech-enabled device — something that listens and talks to you. This device can do anything *but* control lights (since we already did that in Lab 1). First, we want you to storyboard what you imagine the conversational interaction to be like. Then you will use wizarding techniques to elicit examples of what people might say, ask, or respond. We then want you to use the examples collected from at least two other people to inform the redesign of the device.
-
-We will focus on **audio** as the main modality for interaction to start; these general techniques can be extended to **video**, **haptics** or other interactive mechanisms in the second part of the Lab.
-
-A note on what you are building with. Speech interfaces are usually taught as two boxes — speech-in, speech-out — and that framing hides the part that actually determines whether an interaction works. Between listening and speaking sits the question of **whose turn it is**: when does the device decide you have finished talking, and how long does it make you wait before it answers? This lab gives you direct control over both, and we will ask you to notice what changes when you move them.
-
-## Prep for Part 1: Get the Latest Content and Pick up Additional Parts
-
-Please check instructions in [prep.md](prep.md) and complete the setup.
-
-### Pick up Web Camera If You Don't Have One
-
-Students who have not already received a web camera will receive their Webcam and at the beginning of lab. If you cannot make it to class this week, please contact the TAs to ensure you get these.
-
-### Get the Latest Content
-
-As always, pull updates from the class Interactive-Lab-Hub to both your Pi and your own GitHub repo.
-
-**\[recommended\]** Option 1: On the Pi, `cd` to your `Interactive-Lab-Hub`, pull the updates from upstream (class lab-hub) and push the updates back to your own GitHub repo. You will need the *personal access token* for this.
-
-```
-pi@ixe00:~$ cd Interactive-Lab-Hub
-pi@ixe00:~/Interactive-Lab-Hub $ git pull upstream Fall2026
-pi@ixe00:~/Interactive-Lab-Hub $ git add .
-pi@ixe00:~/Interactive-Lab-Hub $ git commit -m "get lab3 updates"
-pi@ixe00:~/Interactive-Lab-Hub $ git push
-```
-
-Option 2: On your own GitHub repo, create a pull request to get updates from the class Interactive-Lab-Hub. After you have the latest updates online, go to your Pi, `cd` to your `Interactive-Lab-Hub` and use `git pull`.
-
----
+**Jaclyn Pham (cqp4)
+Vasudha Devkota (vd269)**
 
 # Part 1
 
-## Setup
+## Text to speech
 
-Create and activate a virtual environment for this lab:
+The greeting shell script is `speech-scripts/jaclyn_piper.sh`.
 
-```
-pi@ixe00:~$ cd Interactive-Lab-Hub/Lab\ 3
-pi@ixe00:~/Interactive-Lab-Hub/Lab 3 $ python3 -m venv .venv
-pi@ixe00:~/Interactive-Lab-Hub/Lab 3 $ source .venv/bin/activate
-(.venv) pi@ixe00:~/Interactive-Lab-Hub/Lab 3 $
-```
+In different voices, the speed of the greeting varies based on the annunciation of the word.
 
-Install the Python dependencies:
-
-```
-(.venv) $ pip install -r requirements.txt
-```
-
-This takes a few minutes. If you would like it to take considerably less time, [`uv`](https://docs.astral.sh/uv/) is a drop-in replacement for `pip` that is dramatically faster on the Pi:
-
-```
-(.venv) $ pip install uv && uv pip install -r requirements.txt
-```
-
-Then run the setup script, which installs the classic speech synthesizers, downloads the voice activity detection model, and pre-fetches a neural voice and a speech recognition model so you are not waiting on downloads during lab:
-
-```
-(.venv):~$ cd speech-scripts
-(.venv) $ ./setup.sh
-```
-
-Check your audio devices before going further. `arecord -l` lists capture devices and `aplay -l` lists playback devices; if your webcam microphone or Bluetooth speaker does not appear, fix that first — every script below assumes the system defaults are the ones you want.
-
-## A. Text to Speech
-
-Your Pi can speak in several quite different ways, and the differences are audible in a way that matters for design. In `speech-scripts/` there are shell scripts for each.
-
-### The classic engines
-
-```
-(.venv) $ cd speech-scripts
-
-(.venv) $ sudo apt update
-(.venv) $ sudo apt install -y espeak festival festvox-kallpc16k
-
-(.venv) $ ./espeak_demo.sh
-(.venv) $ ./festival_demo.sh
-```
-
-You can run these `.sh` files by typing `./filename`, and read one with `cat filename`. You can also play audio files directly with `aplay filename` — try `aplay lookdave.wav`.
-
-These are all decades-old technology and they sound like it. `espeak-ng` is a *formant synthesizer*: it generates speech from an acoustic model of the vocal tract, which is why it sounds robotic but also why the whole thing fits in a couple of megabytes and responds instantly. `festival` is *concatenative*: they stitch together recorded fragments of a real speaker, which sounds more human but breaks audibly at the seams.
-
-### Neural TTS with Piper
-
-Note that the Piper command line changed in version 1.x — voices are now downloaded explicitly with `python3 -m piper.download_voices`, and you invoke it as `python3 -m piper`. Tutorials you find online may show the old `echo ... | piper --model ...` form, which no longer works. Browse the [voice samples](https://rhasspy.github.io/piper-samples) and download a different one if you'd like:
-
-```
-(.venv) $ python3 -m piper.download_voices en_US-lessac-medium
-```
-
-[Piper](https://github.com/OHF-Voice/piper1-gpl) synthesizes speech with a small neural network, runs comfortably on the Pi 5, and sounds markedly better than the above.
-
-```
-(.venv) $ ./piper_demo.sh
-```
-
-The demo script also shows `--output-raw`, which streams audio to the speaker as it is generated rather than writing a file first. Listen for the difference in how quickly speech begins. In a conversational system this gap is the thing your user experiences as responsiveness.
-
-\*\***Write your own shell file to use your favorite of these TTS engines to have your Pi greet you by name.**\*\*
-Shell file exists in jaclyn_piper.sh
-
-\*\***Then answer: Is the same greeting, in these different voices, the same greeting? Describe one concrete way the voice changed what the utterance seemed to mean or who seemed to be speaking.**\*\*
-IN different voice, the speed of the greeting varies based on the annunciation of the word. 
-
-
-## B. Speech to Text
-
-We use [faster-whisper](https://github.com/SYSTRAN/faster-whisper), a reimplementation of OpenAI's Whisper model that runs several times faster on CPU and does not require PyTorch. All processing happens on the Pi; nothing is sent to a server.
-
-```
-(.venv) $ python transcribe.py lookdave.wav
-```
-
-The transcript is not the interesting output here — the timings are. Run it again with a larger model and compare:
-
-```
-(.venv) $ python transcribe.py lookdave.wav --model base.en
-(.venv) $ python transcribe.py lookdave.wav --model small.en
-#  noted that the first run may take longer because the model is downloaded, and that the HF unauthenticated-request warning is expected and not an error.
-```
-
-Available sizes, smallest first: `tiny.en`, `base.en`, `small.en`, `medium.en`. The `.en` variants are English-only and faster than their multilingual counterparts at the same size.
-
-\*\***Record a few seconds of your own speech (`arecord -d 5 -f cd -c 1 -r 16000 test.wav`) and transcribe it with at least two model sizes. Report the real-time factor for each. At what point does the accuracy improvement stop being worth the delay, for a system that has to answer you?**\*\*
+## Speech to text
 
 On a clean 5.00s clip, base.en transcribed in 1.85s (real-time factor 0.37x) and small.en in 5.07s (RTF 1.01x), where RTF is processing time ÷ audio duration. base.en was actually the more accurate of the two here — it kept the digits and punctuation ("Testing, testing 1, 2, 3, testing.") while small.en spelled the numbers out and dropped punctuation ("testing one two three testing") — so the larger model cost ~2.7x the compute for a worse result. For a system that has to answer you, total latency (endpoint silence + transcription + reply + speech out) needs to stay under about 1–2 seconds or the pause reads as broken, so accuracy stops being worth the delay once a model's RTF approaches ~0.5x on the Pi. small.en at 1.01x blows that budget outright, making you wait the length of your own sentence again before it even replies. On the Pi I'd run base.en (or tiny.en) — especially for my mansplainer, where interruptions fire off the voice-activity detector rather than the transcript, so speed matters far more than transcription accuracy.
 
-\*\***Write your own script that verbally asks for a numerical input (a phone number, zipcode, number of pets) and records the answer the respondent provides.**\*\* Numbers are a good stress test — transcription systems make characteristic errors on digit strings, and you will want to know what they are before you design around them.
+The number script asks for a phone number and records the answer:
 
+```
 Playing WAVE 'question.wav' : Signed 16 bit Little Endian, Rate 22050 Hz, Mono
 Asked: "What is your phone number?"
 Recording for 7s... speak now.
 Recording WAVE 'answer.wav' : Signed 16 bit Little Endian, Rate 16000 Hz, Mono
 Heard: "814-234-2301"
-
-## C. Turn-taking: knowing when someone has stopped talking
-
-Everything so far has worked on fixed audio files. A real conversational device does not get told when to start and stop recording — it has to decide. This is the problem that makes speech interfaces hard, and it is mostly not a speech recognition problem.
-
-We use a **voice activity detector** (VAD) to segment the microphone stream into utterances. `listen.py` runs Silero VAD continuously and hands each detected utterance to faster-whisper:
-
-```
-(.venv) $ cd speech-scripts
-(.venv) $ python listen.py
 ```
 
-Speak, pause, and watch it transcribe. Now change the endpointing threshold — the amount of silence the system requires before it decides your turn is over:
-
-```
-(.venv) $ python listen.py --min-silence 0.2
-(.venv) $ python listen.py --min-silence 1.5
-```
-
-\*\***Try both extremes, and something in between. Describe what each one feels like to talk to. Note specifically: at 0.2s, what kinds of normal speech get cut off? At 1.5s, what does the delay make the system seem like?**\*\*
-
-There is no correct value. A system that takes drink orders and a system that listens to someone think out loud want very different thresholds, and the right one depends on what your users are doing with their pauses.
-
-### The complete loop
-
-`echo_bot.py` puts the pieces together: it listens, endpoints, transcribes, and speaks a reply through Piper. The dialogue policy is deliberately trivial — it repeats what you said — so that everything you notice is a property of the timing rather than the content.
-
-```
-(.venv) $ python echo_bot.py
-```
-
-## D. Storyboard
-
-Storyboard and/or use a Verplank diagram to design a speech-enabled device. (Stuck? Make a device that talks for dogs. If that is too stupid, find an application that is better than that.)
-
-\*\***Post your storyboard and diagram here.**\*\*
-
-Write out what you imagine the dialogue to be. Use cards, post-its, or whatever method helps you develop alternatives or group responses.
-
-\*\***Please describe and document your process.**\*\*
-
-Your script should include the pauses. Where does your device wait, and for how long? You now know from Part C that this is a parameter you have to choose, not something that happens for free.
+## Storyboard
 
 <img width="1076" height="740" alt="Screenshot 2026-09-29 at 11 27 39" src="https://github.com/user-attachments/assets/d073c1e6-b6ff-4372-ab9f-948616edfa21" />
 
-## E. Acting out the dialogue
+## Physical prototype
 
-Find a partner, and *without sharing the script with your partner* try out the dialogue you've designed, where you (as the device designer) act as the device you are designing. Please record this interaction (for example, using Zoom's record feature).
+For the first version, we laser-cut acrylic panels and assembled them into a box to house the hardware.
 
-\*\***Describe if the dialogue seemed different than what you imagined when it was acted out, and how.**\*\*
-[!(Watch the video)[https://drive.google.com/file/d/1ttRMjnYvQw7Z-ykoSRh3-XFp7Mjn5OIf/view?usp=sharing]]
+<img alt="Yellow acrylic box housing the Raspberry Pi and cables" src="IMG_7432.jpg" />
+
+## Acting out the dialogue
+
+[Watch the acted dialogue](https://drive.google.com/file/d/1ttRMjnYvQw7Z-ykoSRh3-XFp7Mjn5OIf/view?usp=sharing)
 
 ---
 
 # Lab 3 Part 2
 
-For Part 2, you will redesign the interaction with the speech-enabled device using the data collected, as well as feedback from part 1.
-
 ## Prep for Part 2
 
-1. What are concrete things that could use improvement in the design of your device? For example: wording, timing, anticipation of misunderstandings.
-2. What are other modes of interaction *beyond speech* that you might also use to clarify how to interact? In particular: how does someone know when the device is listening, and when it is thinking? You have a screen and an LED.
-3. Make a new storyboard, diagram and/or script based on these reflections.
-4. (optional) Integrate [input devices](inputs.md) in the system
+Part 1 was a device that interrupts you. Acting that out showed the timing was the whole joke, and also the whole problem: a person playing the device can hear the subject of the sentence, and a script cannot. The redesign is `speech-scripts/mini_sheldon.py`, an autonomous version on the Pi. It listens with the microphone, endpoints with Silero VAD, transcribes with faster-whisper, looks the subject up on Wikipedia, and answers in a British Piper voice (`en_GB-semaine-medium`).
+
+Concrete changes from the acted version:
+
+1. Wording. The interruption should sound like Sheldon Cooper, not a generic "fun fact," and it should be about the thing you actually said.
+2. Timing. He jumps in on a short breath (0.2s), then stops and lets you finish one full statement (0.9s of quiet) instead of firing another fact on every pause.
+3. Misunderstandings. Whisper will mishear. The reply has to survive a bad word, and there has to be an exit line he can still catch.
+
+There is no separate screen or LED in this build. The only cue that he is listening is that he has stopped talking, and the terminal log is what I watched while testing. A light for "listening" versus "thinking" is the obvious next sensor, because right now a silence can mean either.
 
 ## Prototype your system
 
-The system should:
-* use the Raspberry Pi
-* use one or more sensors
-* require participants to speak to it
+[Watch the prototype video](https://youtu.be/YPqgQmZB3vQ?si=2AJ5gfsSU0aY9WE3)
 
-*Document how the system works.*
+Run it from `speech-scripts` with the venv on:
 
-*Include videos or screencaptures of both the system and the controller.*
+```bash
+python mini_sheldon.py --model base.en
+```
+
+The microphone is the sensor. One turn looks like this:
+
+1. While you are still talking, a side thread transcribes the audio so far and prints `(hearing)`.
+2. A 0.2s pause is your breath. If that transcript has a subject, he speaks a Sheldon opener plus the first sentence of the matching Wikipedia page.
+3. He then waits. Breaths in the middle of your answer are not new facts. After 0.9s of quiet he prints `(heard you)` and arms the next interruption.
+4. "Goodbye Sheldon, you are annoying" (or a close mishear that still has "Sheldon" plus "goodbye" or "annoying") makes him say the exit line and quit.
+
+The subject is the last content words, not the longest word. "I keep thinking about black holes" looks up `black holes`.
+
+```python
+def _subject_phrase(heard: str | None) -> str | None:
+    if not heard:
+        return None
+    words = _content_words(heard)
+    if not words:
+        return None
+    return " ".join(words[-2:])
+```
+
+The exit line is fixed, and the match is loose on purpose because Whisper rarely returns the sentence exactly.
+
+```python
+GOODBYE_LINE = "You'll be back. Knowledge is addictive. Bazinga."
+
+def _is_goodbye(heard: str | None) -> bool:
+    if not heard:
+        return False
+    text = re.sub(r"good\s*bye", "goodbye", heard.lower())
+    words = set(re.findall(r"[a-z']+", text))
+    bye = "goodbye" in text or "bye" in words
+    return "sheldon" in words and (bye or "annoying" in words)
+```
 
 ## Test the system
 
-Try to get at least two people to interact with your system. (Ideally, you would inform them that there is a wizard *after* the interaction, but we recognize that can be hard.)
-
-Answer the following:
+I tested by talking to it on the Pi and reading the terminal log, which is the controller for this build: there is no separate wizard UI. The log is how you see what he heard versus what he said.
 
 ### What worked well about the system and what didn't?
-\*\**your answer here*\*\*
+
+**What worked**
+
+- The voice. `en_GB-semaine-medium` plus the short Sheldon openers ("Well, actually.", "Correction.", "Bazinga.") made the same interruption feel like a character. A fact with no opener just sounded like a speaker reading Wikipedia.
+- Live lookup. A hardcoded fact table only knew the words I had typed in. Wikipedia's summary API covers whatever noun he actually caught, with the canned paraphrase only as a fallback when the page is missing.
+- The turn shape. After one fact he prints `(your turn - I'll wait until you finish)` and waits through breaths. That matched the storyboard better than pouncing every 0.2s.
+- Keeping the live transcript. `(hearing)` was usually the best text the system had. Using that line, instead of starting a second Whisper pass and blocking the microphone, stopped the "it gets worse every turn" failure.
+
+```python
+def take(self, final: np.ndarray) -> str | None:
+    # ...
+    with self._cv:
+        if self._heard:
+            text = self._heard
+            self._clear_locked()
+            return text
+        # only decode from scratch when nothing has been heard yet,
+        # and only wait 0.6s so the mic read is not stalled
+```
+
+**What did not**
+
+- The first lookup rule was "longest word." That is not the subject. On a Pi test, "wait" and a bad fragment became pages about Goshen, Indiana and Thanksgiving, because a Wikipedia search will always return *some* popular page. A later check refuses a title that shares no word with what was said.
+- He talked over himself. The mic stays open during Piper playback, so the next "you said" was his own previous sentence ("stay and not. The extra detail doesn't change the claim."), and the following facts were paraphrases of that. Playback audio now gets discarded, and a transcript that overlaps the line he just spoke is ignored.
+- Empty clips still triggered speech. A breath the VAD counted as a turn, with no Whisper text, produced only an opener: `That's incorrect.` or `In point of fact.` Those clips are now skipped.
+- `base.en` is more accurate than `tiny.en` on a file, and too slow for a second full decode on the Pi. The old `take()` deleted the `(hearing)` line, waited 2.5s, gave up, and printed `(still catching) ...` even when the log had already shown "thinking about black holes." While it waited it was not reading the mic, so the next sentence was dropped too. That is why transcription looked like it decayed.
+- The goodbye line is brittle. One test heard "shouted you are annoying" and looked up Annoyance, because "Sheldon" never made it into the transcript. The trigger cannot fire on "annoying" alone without also catching ordinary sentences about being annoyed.
+- He still interrupts on the first content word. "I keep thinking about black holes" became a fact about "thinking," because 0.2s of silence after that word was enough. Waiting for a subject helps only when the noun has already been said.
 
 ### What worked well about the controller and what didn't?
-\*\**your answer here*\*\*
+
+The controller here is the terminal log plus the two timing flags, `--min-silence` and `--listen-silence`. There is no wizard screen.
+
+What worked: `(hearing)` updating while I was still talking made the device's state visible. I could tell "he has the subject" from "he is about to guess" before he spoke. Printing the lookup in the reply line, `(you paused) [black holes] -> ...`, made a wrong fact debuggable instead of mysterious.
+
+What did not: `(still catching) ...` and `(no subject in that, still here)` do not say *why* the text was empty, so for a while I thought the model was getting worse rather than the mic loop stalling. A real controller would show listening versus thinking as a light, not as a line I have to read over SSH.
 
 ### What lessons can you take away from the WoZ interactions for designing a more autonomous version of the system?
-\*\**your answer here*\*\*
+
+When a person played the device in Part 1, they interrupted on the *point* of the sentence and then let the other person answer. The autonomous version's first instinct was to interrupt on any pause and reply from any word. Those are different behaviors, and only the first one is the character.
+
+The acted dialogue also hid three things a person does without noticing: they do not respond to their own voice, they do not answer a silence, and they recognize "goodbye" even if the wording is slightly off. Each of those had to be written down explicitly or the Pi did the opposite. The useful lesson is that the wizard's policy is mostly turn-taking and refusal, not the clever sentence. The Wikipedia sentence was the easy part.
 
 ### How could you use your system to create a dataset of interaction? What other sensing modalities would make sense to capture?
-\*\**your answer here*\*\*
 
-<details>
-  <summary><strong>Submission Cleanup Reminder (Click to Expand)</strong></summary>
+The log is already a dataset of turns: the live partial, the text he committed to, the Wikipedia phrase, and whether he spoke, waited, or signed off. Saving each VAD clip next to that line would make it a speech dataset instead of a text log, which is what you would need to measure how often `base.en` drops the subject.
 
-  **Before submitting your README.md:**
-  - This readme.md file has a lot of extra text for guidance.
-  - Remove all instructional text and example prompts from this file.
-  - You may either delete these sections or use the toggle/hide feature in VS Code to collapse them for a cleaner look.
-  - Your final submission should be neat, focused on your own work, and easy to read for grading.
-</details>
+The modality I most want besides the mic is a single LED, or a face on the small screen, with two states: listening, and speaking. Right now the only way to know which one he is in is to wait and see if he talks. A button held while you want the floor would also mark "I was not done" in the log, which is the label the 0.2s endpoint does not have.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """mini_sheldon.py — mansplainer.py with a British voice and one interruption per turn.
 
-Same stack: Silero VAD, faster-whisper, Piper (en_GB-semaine-medium).
+Same stack: Silero VAD, faster-whisper (base.en), Piper (en_GB-semaine-medium).
 
 A short pause still gets talked over, once. After that line he stops. The
 next thing you say is one statement: breaths in the middle are not more
@@ -484,7 +484,8 @@ def _discard_input(stream: sd.InputStream) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--model", default="tiny.en", help="whisper model size")
+    parser.add_argument("--model", default="base.en",
+                        help="whisper model size (default: base.en)")
     parser.add_argument("--vad-model", type=Path, default=DEFAULT_VAD)
     parser.add_argument("--voice", type=Path, default=DEFAULT_VOICE)
     parser.add_argument("--min-silence", type=float, default=0.2,

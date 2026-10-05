@@ -17,6 +17,7 @@ import argparse
 import json
 import random
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -35,6 +36,31 @@ SAMPLE_RATE = 16000
 LAB_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_VAD = LAB_DIR / "models" / "silero_vad.onnx"
 DEFAULT_VOICE = LAB_DIR / "voices" / "en_GB-semaine-medium.onnx"
+
+
+def ensure_voice(path: Path) -> None:
+    """Download a Piper voice next to `path` when the onnx file is missing.
+
+    Voice files are gitignored, so a clone on the Pi does not include them.
+    """
+    if path.is_file():
+        return
+    name = path.name[:-5] if path.name.endswith(".onnx") else path.name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading Piper voice {name}...", flush=True)
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "piper.download_voices", name,
+             "--data-dir", str(path.parent)],
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        sys.exit(
+            f"Could not download {name}. With the venv active, from Lab 3:\n"
+            f"  python3 -m piper.download_voices {name} --data-dir voices"
+        )
+    if not path.is_file():
+        sys.exit(f"Piper voice still missing at {path}.")
 
 # Sheldon Cooper's usual way in: a correction, then the fact.
 # Short on purpose, so --no-transcribe still sounds like him.
@@ -391,6 +417,7 @@ def main() -> None:
     parser.add_argument("--no-transcribe", action="store_true",
                         help="skip whisper entirely; canned interrupts only")
     args = parser.parse_args()
+    ensure_voice(args.voice)
 
     for path, what in [(args.vad_model, "VAD model"), (args.voice, "Piper voice")]:
         if not path.is_file():
@@ -481,7 +508,7 @@ def main() -> None:
                 statement = []
                 tail_silence = 0.0
                 listening = True
-                print("  (your turn — I'll wait until you finish)", flush=True)
+                print("  (your turn - I'll wait until you finish)", flush=True)
 
             if listening and statement and tail_silence >= statement_gap:
                 heard = ear.take(np.concatenate(statement))

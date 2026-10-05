@@ -45,13 +45,15 @@ else
   echo "    already present, skipping"
 fi
 
-echo "==> Downloading a Piper voice (en_US-lessac-medium)"
+echo "==> Downloading Piper voices"
 mkdir -p "$VOICES_DIR"
-if [[ ! -f "$VOICES_DIR/en_US-lessac-medium.onnx" ]]; then
-  python3 -m piper.download_voices en_US-lessac-medium --data-dir "$VOICES_DIR"
-else
-  echo "    already present, skipping"
-fi
+for voice in en_US-lessac-medium en_GB-semaine-medium; do
+  if [[ ! -f "$VOICES_DIR/${voice}.onnx" ]]; then
+    python3 -m piper.download_voices "$voice" --data-dir "$VOICES_DIR"
+  else
+    echo "    ${voice} already present, skipping"
+  fi
+done
 
 echo "==> Warming the faster-whisper cache (tiny.en)"
 python3 - <<'PY'

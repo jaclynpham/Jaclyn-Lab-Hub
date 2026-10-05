@@ -393,40 +393,33 @@ class Transcriber:
     def take(self, final: np.ndarray) -> str | None:
         """Transcript for the utterance that just ended.
 
-        A partial that already covers the clip is used immediately. If the
-        last stretch was never decoded, that stretch is transcribed too,
-        because the subject is often the last word.
+        The live (hearing) line is the one we keep. Waiting on a second
+        decode of the whole clip stalls the microphone, and on base.en that
+        stall gets longer every turn until later sentences come back empty.
         """
         if self._recognizer is None:
             return None
         final = np.array(final, dtype=np.float32, copy=True)
         with self._cv:
-            # The (hearing) line. A slower model can miss the deadline on a
-            # second pass; this is what we speak from if that pass never lands.
-            saved = self._heard
-            tail = len(final) - self._heard_n
-            if tail > int(0.45 * SAMPLE_RATE):
-                self._heard = None
+            if self._heard:
+                text = self._heard
+                self._clear_locked()
+                return text
+
+            if not self._pending_locked():
                 self._frames = [final]
                 self._n = len(final)
                 self._heard_n = 0
                 self._job = final
-                self._gen += 1
                 self._cv.notify()
-            else:
-                self._wait_pending_locked(1.2 if self._heard is None else 0.35)
-                if not self._heard and not self._pending_locked():
-                    self._frames = [final]
-                    self._n = len(final)
-                    self._heard_n = 0
-                    self._job = final
-                    self._cv.notify()
 
-            deadline = time.monotonic() + 2.5
+            # Short wait only. A long one stops the mic read, the buffer
+            # overflows, and the next sentence is gone.
+            deadline = time.monotonic() + 0.6
             while not self._heard and self._pending_locked() and time.monotonic() < deadline:
                 self._cv.wait(timeout=0.05)
 
-            text = self._heard or saved
+            text = self._heard
             self._clear_locked()
             return text
 
@@ -602,9 +595,10 @@ def main() -> None:
                 if recognizer is not None and speaking:
                     ear.extend(frame)
                     tail_silence = 0.0
-                elif ear.has_audio() and vad.empty() and not listening:
+                elif ear.has_audio() and vad.empty() and not listening and not held:
                     # A blip too short to be a turn. Drop it so the next
-                    # sentence is transcribed on its own.
+                    # sentence is transcribed on its own. Leave the ear
+                    # alone while a sentence is still being collected.
                     ear.reset()
                     shown = None
 
@@ -631,6 +625,12 @@ def main() -> None:
                 held.append(utterance)
                 heard = ear.take(np.concatenate(held)) if recognizer is not None else None
                 held_silence = 0.0
+                if recognizer is not None and not heard:
+                    # Don't keep a clip that produced no text. The next take
+                    # would re-decode this plus the new audio and fall behind.
+                    held.pop()
+                    print("  (no words in that clip)", flush=True)
+                    continue
                 if _is_goodbye(heard):
                     _farewell(speaker, stream)
                     return
@@ -640,8 +640,7 @@ def main() -> None:
                     shown = None
                     continue
                 if recognizer is not None and not _subject_phrase(heard):
-                    # Breath landed before the topic. Keep this audio and wait.
-                    print(f"  (still catching) {heard or '...'}", flush=True)
+                    print(f"  (still catching) {heard}", flush=True)
                     continue
 
                 reply = mansplain(heard)

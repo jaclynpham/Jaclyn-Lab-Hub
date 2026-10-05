@@ -577,6 +577,12 @@ def main() -> None:
                     continue
 
                 heard = ear.take(utterance)
+                if recognizer is not None and not heard:
+                    # A breath or a noise ended the turn with no words.
+                    print("  (no words in that clip)", flush=True)
+                    ear.reset()
+                    shown = None
+                    continue
                 if _echoes(heard, last_reply):
                     ear.reset()
                     shown = None

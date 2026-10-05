@@ -401,6 +401,9 @@ class Transcriber:
             return None
         final = np.array(final, dtype=np.float32, copy=True)
         with self._cv:
+            # The (hearing) line. A slower model can miss the deadline on a
+            # second pass; this is what we speak from if that pass never lands.
+            saved = self._heard
             tail = len(final) - self._heard_n
             if tail > int(0.45 * SAMPLE_RATE):
                 self._heard = None
@@ -423,7 +426,7 @@ class Transcriber:
             while not self._heard and self._pending_locked() and time.monotonic() < deadline:
                 self._cv.wait(timeout=0.05)
 
-            text = self._heard
+            text = self._heard or saved
             self._clear_locked()
             return text
 

@@ -103,6 +103,7 @@ _STOP = {
     "maybe", "probably", "actually", "basically", "literally", "still", "already",
     "also", "got", "get", "getting", "now", "something", "anything", "everything",
     "nothing", "someone", "everyone", "keep", "keeps", "kept", "make", "makes",
+    "not", "no", "yes",
     "should", "could", "would", "can", "will", "shall", "might", "must",
 }
 
@@ -143,81 +144,146 @@ def _topic(heard: str) -> str:
     return f"{salient[0]} and {salient[1]}"
 
 
-def _keyword(heard: str) -> str | None:
-    """The single most salient content word — the thing to look up."""
+def _keywords(heard: str, limit: int = 3) -> list[str]:
+    """Content words worth a Wikipedia lookup, longest first."""
     words = re.findall(r"[a-z0-9']+", heard.lower())
-    kept = [w for w in words if w not in _STOP and len(w) > 2]
-    if not kept:
-        return None
-    return max(kept, key=len)
+    kept: list[str] = []
+    for w in words:
+        if w in _STOP or len(w) <= 2 or w in kept:
+            continue
+        kept.append(w)
+    kept.sort(key=len, reverse=True)
+    return kept[:limit]
 
 
-def _fetch_summary(term: str, timeout: float) -> tuple[str | None, bool]:
-    """Return (first sentence or None, whether that result is worth caching).
-
-    A missing page stays cached. A network hiccup does not, so the next
-    breath can try again once Wi-Fi is back.
-    """
+def _wiki_get(url: str, timeout: float) -> dict | list | None:
+    req = urllib.request.Request(url, headers={"User-Agent": "mansplainer-lab/1.0"})
     try:
-        url = _WIKI + urllib.parse.quote(term, safe="")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.load(resp)
+    except Exception:
+        return None
+    return data
+
+
+def _fetch_summary(term: str, timeout: float) -> tuple[str | None, str]:
+    """Return (first sentence or None, status).
+
+    status is ok, disambiguation, missing, or error. A missing page can be
+    cached. A network error cannot, so the next turn tries again.
+    """
+    url = _WIKI + urllib.parse.quote(term, safe="")
+    try:
         req = urllib.request.Request(url, headers={"User-Agent": "mansplainer-lab/1.0"})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.load(resp)
-        if data.get("type") == "disambiguation":
-            return None, True
-        extract = (data.get("extract") or "").strip()
-        if not extract:
-            return None, True
-        return re.split(r"(?<=[.!?])\s", extract)[0], True
     except urllib.error.HTTPError as exc:
-        return None, exc.code == 404
+        return None, "missing" if exc.code == 404 else "error"
     except Exception:
+        return None, "error"
+    if data.get("type") == "disambiguation":
+        return None, "disambiguation"
+    extract = (data.get("extract") or "").strip()
+    if not extract:
+        return None, "missing"
+    return re.split(r"(?<=[.!?])\s", extract)[0], "ok"
+
+
+def _search_titles(term: str, timeout: float) -> list[str]:
+    """Other pages for a word whose own summary is a disambiguation list."""
+    query = urllib.parse.urlencode({
+        "action": "opensearch",
+        "search": term,
+        "limit": "4",
+        "namespace": "0",
+        "format": "json",
+    })
+    data = _wiki_get("https://en.wikipedia.org/w/api.php?" + query, timeout)
+    if not isinstance(data, list) or len(data) < 2:
+        return []
+    return [title for title in data[1] if isinstance(title, str)]
+
+
+def _resolve(term: str, timeout: float) -> tuple[str | None, bool]:
+    """Fact for one word, and whether a miss should be remembered.
+
+    'Stay' is a disambiguation page, so a direct summary comes back empty.
+    The search result after it is a real article, and that sentence is used.
+    """
+    fact, status = _fetch_summary(term, timeout)
+    if fact:
+        return fact, True
+    if status == "error":
         return None, False
+    if status == "disambiguation":
+        for title in _search_titles(term, timeout):
+            if title.casefold() == term.casefold():
+                continue
+            fact, status = _fetch_summary(title, timeout)
+            if fact:
+                return fact, True
+            if status == "error":
+                return None, False
+    return None, status == "missing"
 
 
 def _live_fact(heard: str, timeout: float = 1.2) -> str | None:
-    """Opening sentence of the Wikipedia summary for the topic word.
+    """Opening sentence of a Wikipedia summary for what was just said.
 
-    Callers looking up the same word share one request.
+    Tries the longest content words in order. Callers looking up the same
+    word share one request.
     """
-    term = _keyword(heard)
-    if not term:
-        return None
-
-    with _fact_lock:
-        if term in _fact_cache:
-            return _fact_cache[term]
-        wait = _fact_wait.get(term)
-        if wait is None:
-            wait = threading.Event()
-            _fact_wait[term] = wait
-            owner = True
-        else:
-            owner = False
-
-    if not owner:
-        wait.wait(timeout + 0.3)
+    for term in _keywords(heard):
         with _fact_lock:
-            return _fact_cache.get(term)
+            if term in _fact_cache:
+                cached = _fact_cache[term]
+                if cached:
+                    return cached
+                continue
+            wait = _fact_wait.get(term)
+            if wait is None:
+                wait = threading.Event()
+                _fact_wait[term] = wait
+                owner = True
+            else:
+                owner = False
 
-    fact, cacheable = _fetch_summary(term, timeout)
-    with _fact_lock:
-        if cacheable:
-            _fact_cache[term] = fact
-        _fact_wait.pop(term, None)
-    wait.set()
-    return fact
+        if not owner:
+            wait.wait(timeout + 0.3)
+            with _fact_lock:
+                cached = _fact_cache.get(term)
+            if cached:
+                return cached
+            continue
+
+        fact, cacheable = _resolve(term, timeout)
+        with _fact_lock:
+            if cacheable:
+                _fact_cache[term] = fact
+            _fact_wait.pop(term, None)
+        wait.set()
+        if fact:
+            return fact
+    return None
 
 
 def _prefetch(heard: str) -> None:
     """Start the Wikipedia fetch now, so the breath doesn't have to."""
-    term = _keyword(heard)
-    if not term:
+    if not _keywords(heard):
         return
-    with _fact_lock:
-        if term in _fact_cache or term in _fact_wait:
-            return
     threading.Thread(target=_live_fact, args=(heard,), daemon=True).start()
+
+
+def _echoes(heard: str | None, spoken: str) -> bool:
+    """True when the mic mostly heard the line we just played."""
+    if not heard or not spoken:
+        return False
+    heard_words = set(re.findall(r"[a-z0-9']+", heard.lower()))
+    spoken_words = set(re.findall(r"[a-z0-9']+", spoken.lower()))
+    shared = heard_words & spoken_words
+    if len(shared) < 3:
+        return False
+    return len(shared) / min(len(heard_words), len(spoken_words)) >= 0.5
 
 
 def _paraphrase(heard: str) -> str:
@@ -400,6 +466,21 @@ class Speaker:
             sd.wait()
 
 
+def _discard_input(stream: sd.InputStream) -> None:
+    """Throw away audio recorded while the speaker was playing.
+
+    The mic stays open during playback, so the next read would otherwise be
+    Sheldon's own line, and the following 'fact' would be about that.
+    """
+    time.sleep(0.2)
+    for _ in range(6):
+        available = stream.read_available
+        if available <= 0:
+            break
+        stream.read(available)
+        time.sleep(0.05)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -454,6 +535,7 @@ def main() -> None:
     listening = False
     statement: list[np.ndarray] = []
     tail_silence = 0.0
+    last_reply = ""
 
     with sd.InputStream(channels=1, dtype="float32", samplerate=SAMPLE_RATE) as stream:
         while True:
@@ -494,12 +576,17 @@ def main() -> None:
                     continue
 
                 heard = ear.take(utterance)
+                if _echoes(heard, last_reply):
+                    ear.reset()
+                    shown = None
+                    continue
+
                 reply = mansplain(heard)
                 print(f"  (you paused) -> {reply}", flush=True)
                 speaker.say(reply)
+                last_reply = reply
+                _discard_input(stream)
 
-                # Drop anything the mic caught while we were talking, so the
-                # device doesn't interrupt its own interruption.
                 while not vad.empty():
                     vad.pop()
                 buffer = np.empty(0, dtype=np.float32)
@@ -512,6 +599,16 @@ def main() -> None:
 
             if listening and statement and tail_silence >= statement_gap:
                 heard = ear.take(np.concatenate(statement))
+                if _echoes(heard, last_reply):
+                    print("  (that was me, still listening)", flush=True)
+                    statement = []
+                    tail_silence = 0.0
+                    ear.reset()
+                    shown = None
+                    buffer = np.empty(0, dtype=np.float32)
+                    while not vad.empty():
+                        vad.pop()
+                    continue
                 print(f"  (heard you) {heard or '(nothing intelligible)'}", flush=True)
                 statement = []
                 tail_silence = 0.0

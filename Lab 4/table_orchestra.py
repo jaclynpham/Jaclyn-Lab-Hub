@@ -12,14 +12,20 @@ That bed also gets louder as the reading rises. Run qwiic_distance.py
 and set QWIIC_FAR and QWIIC_NEAR from the numbers you see. The count
 is not centimeters.
 
-Touch. Four conductive objects on the MPR121, the same idea as the
-Twizzlers. Each one holds a line from Ode to Joy. Holding it plays
-that line at a steady level. Letting go fades only that line.
+Touch. Six conductive objects on the MPR121. Holding one plays that
+line at full level. Letting go fades only that line. Viola and horn
+also join the harmony when someone sits close, and stay if the pad
+is still held after they lean away.
 
-    pad 0   violin
-    pad 1   flute
-    pad 2   oboe
-    pad 3   timpani
+    pad 1    violin
+    pad 3    flute
+    pad 5    oboe
+    pad 6    timpani
+    pad 8    viola
+    pad 10   horn
+
+Notes written below middle C are played one or two octaves higher, in the
+same key, so a small speaker can produce them.
 
 The bowl. The APDS-9960 sits under one object, looking up. A hand
 hovering there rings a C major drone (C, G, C, E), so it sits in the
@@ -44,8 +50,11 @@ from adafruit_apds9960.apds9960 import APDS9960
 
 import twizzler_orchestra as score
 
-# Final gain on the whole mix. Leaves room for the bed, the touches, and the bowl.
-MASTER = 0.55
+# 1.0 is full scale, the "volume 100" level.
+MASTER = 1.0
+# Small speakers fade out under middle C. Notes below this are doubled
+# until they clear it. C stays C, so the harmony does not change.
+SPEAKER_FLOOR = 261.63
 
 # Qwiic proximity counts. Higher means closer. Tune from qwiic_distance.py.
 QWIIC_FAR = 30
@@ -55,10 +64,12 @@ BED = ("cello", "viola", "horn")
 
 # MPR121 pad, then the part it plays while held.
 TOUCH = (
-    (0, "violin"),
-    (1, "flute"),
-    (2, "oboe"),
-    (3, "timpani"),
+    (1, "violin"),
+    (3, "flute"),
+    (5, "oboe"),
+    (6, "timpani"),
+    (8, "viola"),
+    (10, "horn"),
 )
 
 # APDS-9960 photodiode sums. The bowl uses these, not gesture() directions.
@@ -67,8 +78,8 @@ BOWL_MAX = 700
 BOWL_HOLD_S = 0.20
 BOWL_ATTACK_S = 0.30
 BOWL_RELEASE_S = 1.80
-# C major partials: fundamental, fifth, octave, third.
-BOWL_FREQS = (score.C3, score.G3, score.C4, score.E4)
+# C major partials, from C4 up: fundamental, fifth, octave, third.
+BOWL_FREQS = (score.C4, score.G4, score.C4 * 2.0, score.E4 * 2.0)
 BOWL_NAMES = ("fundamental", "fifth", "octave", "third")
 
 # Gesture FIFO registers. gesture() would block until the hand left and
@@ -115,6 +126,17 @@ def bowl_from_diodes(up: float, down: float, left: float, right: float):
         third = 0.08 + 0.42 * (0.5 + 0.5 * math.cos(angle + 2.094395))
         weights = (1.0, fifth, octave, third)
     return span, weights
+
+
+def _in_speaker_range(freq: np.ndarray) -> np.ndarray:
+    """Move sounding notes up by octaves until they clear SPEAKER_FLOOR."""
+    out = np.asarray(freq, dtype=np.float64).copy()
+    for _ in range(3):
+        low = (out > 0.0) & (out < SPEAKER_FLOOR)
+        if not np.any(low):
+            break
+        out = np.where(low, out * 2.0, out)
+    return out
 
 
 def _glide(start: float, target: float, frames: int, seconds: float) -> tuple[np.ndarray, float]:
@@ -179,8 +201,11 @@ class Orchestra:
     """Shared clock. Sensors only set targets. This mixes them."""
 
     def __init__(self) -> None:
-        self.want = [False] * len(score.PARTS)
-        self.gain = [0.0] * len(score.PARTS)
+        n = len(score.PARTS)
+        self.touch_on = [False] * n
+        self.bed_on = [False] * n
+        self.touch_gain = [0.0] * n
+        self.bed_gain = [0.0] * n
         self.bed_level = 0.0
         self.bed_target = 0.0
         self.bowl_level = 0.0
@@ -219,22 +244,34 @@ class Orchestra:
         ramp = np.arange(1, frames + 1)
         bed_env, self.bed_level = _glide(self.bed_level, self.bed_target, frames, 0.25)
         for i, (voice, freq, age, dur, level) in enumerate(parts):
-            target = 1.0 if self.want[i] else 0.0
-            start = self.gain[i]
-            if target == 0.0 and start <= 0.0:
+            touch_target = 1.0 if self.touch_on[i] else 0.0
+            bed_part_target = 1.0 if self.bed_on[i] else 0.0
+            if (
+                touch_target == 0.0
+                and self.touch_gain[i] <= 0.0
+                and bed_part_target == 0.0
+                and self.bed_gain[i] <= 0.0
+            ):
                 continue
-            if target > start:
-                gains = np.minimum(start + step_up * ramp, 1.0)
+            if touch_target > self.touch_gain[i]:
+                touch_g = np.minimum(self.touch_gain[i] + step_up * ramp, 1.0)
             else:
-                gains = np.maximum(start - step_up * ramp, 0.0)
-            self.gain[i] = float(gains[-1])
+                touch_g = np.maximum(self.touch_gain[i] - step_up * ramp, 0.0)
+            self.touch_gain[i] = float(touch_g[-1])
+            if bed_part_target > self.bed_gain[i]:
+                bed_g = np.minimum(self.bed_gain[i] + step_up * ramp, 1.0)
+            else:
+                bed_g = np.maximum(self.bed_gain[i] - step_up * ramp, 0.0)
+            self.bed_gain[i] = float(bed_g[-1])
+            if score.PARTS[i] in BED:
+                gains = np.maximum(touch_g, bed_g * bed_env)
+            else:
+                gains = touch_g
             slot = idx // score.EIGHTH
+            heard = _in_speaker_range(freq[slot])
             t = (age[slot] * score.EIGHTH + into) / score.SAMPLE_RATE
             remain = dur[slot] * score.EIGHTH - age[slot] * score.EIGHTH - into
-            layer = gains * voice(t, freq[slot], remain, noise) * level
-            if score.PARTS[i] in BED:
-                layer = layer * bed_env
-            mix += layer
+            mix += gains * voice(t, heard, remain, noise) * level
 
         bowl_seconds = BOWL_ATTACK_S if self.bowl_target >= self.bowl_level else BOWL_RELEASE_S
         bowl_env, self.bowl_level = _glide(self.bowl_level, self.bowl_target, frames, bowl_seconds)
@@ -263,8 +300,6 @@ def _bed_names(count: int) -> str:
 
 def main() -> None:
     touch_names = {name for _, name in TOUCH}
-    if touch_names & set(BED):
-        raise RuntimeError("A part cannot be both a touch and a bed layer")
     if not touch_names <= set(score.PARTS) or not set(BED) <= set(score.PARTS):
         raise RuntimeError("Every part must come from the orchestra")
 
@@ -308,7 +343,7 @@ def main() -> None:
             orchestra.bed_target = level
             if count != bed_count:
                 for i, name in enumerate(BED):
-                    orchestra.want[part_index[name]] = i < count
+                    orchestra.bed_on[part_index[name]] = i < count
                 bed_count = count
                 print(f"qwiic {prox_smooth:.0f}   {_bed_names(count)}")
                 last_prox_print = prox_smooth
@@ -320,12 +355,12 @@ def main() -> None:
                 down = bool(mpr121[pad].value)
                 if down and not held[pad]:
                     held[pad] = True
-                    orchestra.want[part_index[name]] = True
-                    print(f"cue  {name}")
+                    orchestra.touch_on[part_index[name]] = True
+                    print(f"cue  {pad} {name}")
                 elif not down and held[pad]:
                     held[pad] = False
-                    orchestra.want[part_index[name]] = False
-                    print(f"cut  {name}")
+                    orchestra.touch_on[part_index[name]] = False
+                    print(f"cut  {pad} {name}")
 
             diodes = read_diodes(apds.i2c_device)
             now = time.monotonic()

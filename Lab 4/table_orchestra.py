@@ -1,4 +1,8 @@
-"""One table, one speaker, three sensors, all in C major.
+"""One table, one speaker, three sensors, all in D major.
+
+The piece is Pachelbel's Canon in D, the same score as
+canon_orchestra.py. It loops at 72 BPM. The parts are written to
+enter on top of each other and stay in one harmony.
 
 Sitting down. The Qwiic VCNL4040 watches the place setting. A higher
 reading means closer. The harmony bed fades up as someone leans in:
@@ -28,8 +32,8 @@ Notes written below middle C are played one or two octaves higher, in the
 same key, so a small speaker can produce them.
 
 The bowl. The APDS-9960 sits under one object, looking up. A hand
-hovering there rings a C major drone (C, G, C, E), so it sits in the
-same chord as the orchestra. Moving the hand around the object shifts
+hovering there rings a D major drone (D, F-sharp, A), so it sits in
+the same chord as the canon. Moving the hand around the object shifts
 which harmonic is bright, the way a mallet wakes a singing bowl by
 circling the rim. Closer to the opening is louder. The tone keeps
 ringing for a moment after the hand leaves.
@@ -48,7 +52,7 @@ import adafruit_mpr121
 import qwiic_proximity
 from adafruit_apds9960.apds9960 import APDS9960
 
-import twizzler_orchestra as score
+import canon_orchestra as score
 
 # 1.0 is full scale, the "volume 100" level.
 MASTER = 1.0
@@ -78,8 +82,8 @@ BOWL_MAX = 700
 BOWL_HOLD_S = 0.20
 BOWL_ATTACK_S = 0.30
 BOWL_RELEASE_S = 1.80
-# C major partials, from C4 up: fundamental, fifth, octave, third.
-BOWL_FREQS = (score.C4, score.G4, score.C4 * 2.0, score.E4 * 2.0)
+# D major partials, from D4 up: fundamental, fifth, octave, third.
+BOWL_FREQS = (score.D4, score.A4, score.D5, score.FS5)
 BOWL_NAMES = ("fundamental", "fifth", "octave", "third")
 
 # Gesture FIFO registers. gesture() would block until the hand left and
@@ -326,7 +330,7 @@ def main() -> None:
     bowl_color = ""
     last_bowl = 0.0
 
-    print(f"Table orchestra, {score.BPM} BPM, C major. One speaker.")
+    print(f"Table orchestra, Canon in D, {score.BPM} BPM, D major. One speaker.")
     print("Lean in. The Qwiic sensor adds the harmony and raises its volume.")
     print(f"  far  <= {QWIIC_FAR}   silence")
     print(f"  near >= {QWIIC_NEAR}  {_bed_names(len(BED))}")

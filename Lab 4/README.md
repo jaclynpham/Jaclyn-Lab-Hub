@@ -1,6 +1,9 @@
 # Ph-UI!!!
 
 <details>
+<summary><strong>Lab structure and instructions (click to expand)</strong></summary>
+
+<details>
 	<summary><strong>Instructions for Students (Click to Expand)</strong></summary>
   
 	**Submission Cleanup Reminder:**
@@ -285,6 +288,8 @@ Your kit includes these [SparkFun Qwiic OLED screens](https://www.sparkfun.com/p
 As you develop your Feast Automata concept, consider where the sensor and actuator need to be placed, what parts move, how electronics are housed, and how the overall form and aesthetics support the interaction.
 
 **answers in the next section**
+
+</details>
 
 ### Concept and artistic motivation
 

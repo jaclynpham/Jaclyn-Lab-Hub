@@ -1,30 +1,20 @@
 """Ode to Joy, conducted by hand with the APDS-9960.
 
 Same orchestra as twizzler_orchestra.py. Viola is playing when the
-script starts. Each swipe changes the arrangement by one instrument:
+script starts, at a fixed volume. Each finished swipe changes the
+arrangement by one instrument, and earlier instruments keep playing,
+the way two Twizzlers sound together while both are held:
 
-  left to right    add the next section
+  left to right    add the next section on top
   right to left   remove the section added most recently
 
 Add order: viola, oboe, timpani, cello, flute, horn, violin.
 The count stops at viola on the way down, and at the full orchestra
 on the way up.
 
-Closer to the sensor is louder. Farther away is quieter. The reading
-is the sensor's own 0–255 proximity count, not a distance in
-centimeters. Watch the "prox" lines and edit PROX_FAR and PROX_NEAR
-to match your hand.
-
 The sensor reports a finished swipe (left, right, up, or down). It
-does not report a continuous left/right position.
-
-Gesture and proximity share one sensor state machine. Gesture mode
-starts when proximity reaches the library's entry threshold of 5, and
-the chip stays there until the hand leaves. Until then, apds.proximity
-is not a fresh sample, and apds.gesture() blocks while it empties the
-gesture buffer. A hand held still and close can pause the prox line.
-Volume follows the latest sample the main loop did get. The audio
-callback only smooths that level. It never reads the sensor.
+does not report a continuous left/right position, so one pass of the
+hand adds one section. Sweep again to add the next one.
 """
 
 import time
@@ -41,25 +31,23 @@ PHRASE_EIGHTHS = 64  # 8 bars of 4/4
 PHRASE = EIGHTH * PHRASE_EIGHTHS
 RELEASE = int(0.03 * SAMPLE_RATE)
 
-# Proximity counts from apds.proximity. Higher means more reflected IR,
-# which usually means the hand is closer. These are not centimeters.
-# Run proximity_test.py, note the number with your hand away and the
-# number with your hand where you want full volume, then put those
-# numbers here. With gesture enabled, a close hand can stall this
-# reading; see the note at the top of the file.
-PROX_FAR = 8
-PROX_NEAR = 80
-VOLUME_MIN = 0.22
-VOLUME_MAX = 1.0
-# Seconds to glide from quiet to loud, so a new reading does not click.
-VOLUME_RAMP_S = 0.20
+# Fixed master level. 0.80 is 80% of full scale. The hand does not change it.
+MASTER_VOLUME = 0.80
 # One swipe should change the arrangement once, even if the sensor
 # reports that swipe again while the hand is still leaving.
 GESTURE_COOLDOWN_S = 0.40
 
 # Same codes gesture_test.py prints.
+GESTURE_UP = 0x01
+GESTURE_DOWN = 0x02
 GESTURE_LEFT = 0x03
 GESTURE_RIGHT = 0x04
+GESTURE_NAMES = {
+    GESTURE_UP: "up",
+    GESTURE_DOWN: "down",
+    GESTURE_LEFT: "left",
+    GESTURE_RIGHT: "right",
+}
 
 C2, G2 = 65.41, 98.00
 C3, G3, B3 = 130.81, 196.00, 246.94
@@ -225,27 +213,13 @@ def _timpani(t, f, remain, noise):
     return ring * (tone + 0.28 * head)
 
 
-def proximity_to_volume(prox: int) -> float:
-    """Map a proximity count to the master volume, from VOLUME_MIN to VOLUME_MAX."""
-    if PROX_NEAR <= PROX_FAR:
-        raise ValueError("PROX_NEAR must be greater than PROX_FAR")
-    if prox <= PROX_FAR:
-        return VOLUME_MIN
-    if prox >= PROX_NEAR:
-        return VOLUME_MAX
-    span = (prox - PROX_FAR) / (PROX_NEAR - PROX_FAR)
-    return VOLUME_MIN + span * (VOLUME_MAX - VOLUME_MIN)
-
-
 class Orchestra:
-    """Shared clock. The main loop decides which sections are on, and how loud."""
+    """Shared clock. The main loop decides which sections play together."""
 
     def __init__(self) -> None:
         self.want = [False] * len(PARTS)
         self.want[PART_INDEX["viola"]] = True
         self.gain = [0.0] * len(PARTS)
-        self.master_target = VOLUME_MIN
-        self.master = VOLUME_MIN
         self.n = 0
         self.bar = 0
         self.stream = sd.OutputStream(
@@ -298,15 +272,7 @@ class Orchestra:
             remain = dur[slot] * EIGHTH - age[slot] * EIGHTH - into
             mix += gains * voice(t, freq[slot], remain, noise) * level
 
-        # master_target is written in the main loop. Glide toward it here.
-        master_target = float(self.master_target)
-        master_step = 1.0 / int(VOLUME_RAMP_S * SAMPLE_RATE)
-        if master_target > self.master:
-            masters = np.minimum(self.master + master_step * ramp, master_target)
-        else:
-            masters = np.maximum(self.master - master_step * ramp, master_target)
-        self.master = float(masters[-1])
-        outdata[:, 0] = np.clip(mix * 0.72 * masters, -1.0, 1.0).astype(np.float32)
+        outdata[:, 0] = np.clip(mix * MASTER_VOLUME, -1.0, 1.0).astype(np.float32)
 
     def close(self) -> None:
         self.stream.stop()
@@ -325,45 +291,32 @@ def main() -> None:
     i2c = board.I2C()
     apds = APDS9960(i2c)
     # Gesture mode only runs when proximity is enabled too.
+    # The first test sat at proximity 0–6, and gesture mode starts at 5,
+    # so a normal wave never became a swipe. 8x gain is the highest
+    # setting the library exposes (0=1x, 1=2x, 2=4x, 3=8x).
     apds.enable_proximity = True
+    apds.proximity_gain = 3
+    apds.gesture_gain = 3
     apds.enable_gesture = True
 
     orchestra = Orchestra()
     count = 1
     shown = -1
     last_gesture = 0.0
-    last_prox_print = 0.0
-    last_prox = -1
 
-    print(f"Proximity orchestra, {BPM} BPM, C major.")
-    print("Swipe left to right to add a section. Swipe right to left to remove one.")
-    print("Move closer to get louder, and farther away to get quieter.")
-    print(
-        f"Proximity counts, not centimeters. "
-        f"PROX_FAR={PROX_FAR} is quiet, PROX_NEAR={PROX_NEAR} is full."
-    )
-    print("Edit those two numbers to match the prox lines printed below.")
-    print("A hand held close can pause prox updates until the hand moves away.")
+    print(f"Proximity orchestra, {BPM} BPM, C major. Volume fixed at {MASTER_VOLUME:.2f}.")
+    print("Swipe left to right to add a section. Earlier sections keep playing.")
+    print("Swipe right to left to remove the latest section.")
+    print("Sweep a few centimeters above the sensor, as gesture_test.py does.")
     print(_arrangement(count))
 
     try:
         while True:
-            # Sample proximity before gesture(). gesture() can block
-            # while a hand is over the sensor.
-            prox = apds.proximity
-            orchestra.master_target = proximity_to_volume(prox)
-
-            now = time.monotonic()
-            if abs(prox - last_prox) >= 4 or now - last_prox_print >= 0.5:
-                last_prox = prox
-                last_prox_print = now
-                print(f"prox {prox:3d}   volume {orchestra.master_target:.2f}")
-
             # gesture() can sit here until the hand moves away. Time the
             # cooldown from when it returns, so one swipe counts once.
             gesture = apds.gesture()
             now = time.monotonic()
-            if gesture in (GESTURE_LEFT, GESTURE_RIGHT) and now - last_gesture >= GESTURE_COOLDOWN_S:
+            if gesture in GESTURE_NAMES and now - last_gesture >= GESTURE_COOLDOWN_S:
                 last_gesture = now
                 if gesture == GESTURE_RIGHT and count < len(ORDER):
                     count += 1
@@ -374,12 +327,13 @@ def main() -> None:
                     count -= 1
                     orchestra.set_count(count)
                     print(f"cut  {leaving}   {_arrangement(count)}")
+                elif gesture in (GESTURE_UP, GESTURE_DOWN):
+                    print(f"saw {GESTURE_NAMES[gesture]}  (left/right are the swipes that change the orchestra)")
 
             bar = orchestra.bar
             if bar != shown:
                 shown = bar
                 print(f"bar {bar + 1}")
-            time.sleep(0.01)
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:

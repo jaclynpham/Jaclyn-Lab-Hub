@@ -17,8 +17,8 @@
 ---
 
 ## Lab Overview
-Team: <canvas group name>  
-Members: Full Name (netid, github-handle), ...  
+Team: 
+Members: Jaclyn Pham (cqp4)
 Clock name: <name>
 
 

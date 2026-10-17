@@ -60,11 +60,15 @@ MASTER = 1.0
 # until they clear it. C stays C, so the harmony does not change.
 SPEAKER_FLOOR = 261.63
 
-# Qwiic proximity counts. Higher means closer. Tune from qwiic_distance.py.
-QWIIC_FAR = 30
-QWIIC_NEAR = 2000
+# Qwiic proximity counts. Higher means closer. Tune from the qwiic lines.
+# A hand in range should already be loud; closer adds the rest of the bed.
+QWIIC_FAR = 12
+QWIIC_NEAR = 200
 # Harmony that arrives as someone sits down, in that order.
 BED = ("cello", "viola", "horn")
+# Adafruit proximity is 0–255. Above APDS_FAR the bowl rings.
+APDS_FAR = 4
+APDS_NEAR = 50
 
 # MPR121 pad, then the part it plays while held.
 TOUCH = (
@@ -77,8 +81,8 @@ TOUCH = (
 )
 
 # APDS-9960 photodiode sums. The bowl uses these, not gesture() directions.
-BOWL_MIN = 80
-BOWL_MAX = 700
+BOWL_MIN = 30
+BOWL_MAX = 400
 BOWL_HOLD_S = 0.20
 BOWL_ATTACK_S = 0.30
 BOWL_RELEASE_S = 1.80
@@ -96,6 +100,15 @@ _GFIFO_CLR = 0x04
 _GFIFO_U = 0xFC
 
 
+def _audible(span: float) -> float:
+    """A detected hand starts at a level the speaker can actually play."""
+    if span <= 0.0:
+        return 0.0
+    if span >= 1.0:
+        return 1.0
+    return 0.62 + 0.38 * span
+
+
 def bed_state(prox: float) -> tuple[int, float]:
     """How many bed parts are on, and how loud the bed is, from one proximity count."""
     if QWIIC_NEAR <= QWIIC_FAR:
@@ -106,7 +119,15 @@ def bed_state(prox: float) -> tuple[int, float]:
     count = int(span * len(BED)) + 1
     if count > len(BED):
         count = len(BED)
-    return count, span
+    return count, _audible(span)
+
+
+def apds_level(prox: int) -> float:
+    """Bowl loudness from the Adafruit proximity count, before any circle data."""
+    if prox <= APDS_FAR:
+        return 0.0
+    span = (min(prox, APDS_NEAR) - APDS_FAR) / (APDS_NEAR - APDS_FAR)
+    return _audible(span)
 
 
 def bowl_from_diodes(up: float, down: float, left: float, right: float):
@@ -119,6 +140,7 @@ def bowl_from_diodes(up: float, down: float, left: float, right: float):
     if energy < BOWL_MIN:
         return None
     span = (min(energy, BOWL_MAX) - BOWL_MIN) / (BOWL_MAX - BOWL_MIN)
+    level = _audible(span)
     x = right - left
     y = up - down
     if math.hypot(x, y) < 12:
@@ -129,7 +151,7 @@ def bowl_from_diodes(up: float, down: float, left: float, right: float):
         octave = 0.12 + 0.55 * (0.5 + 0.5 * math.cos(angle - 2.094395))
         third = 0.08 + 0.42 * (0.5 + 0.5 * math.cos(angle + 2.094395))
         weights = (1.0, fifth, octave, third)
-    return span, weights
+    return level, weights
 
 
 def _in_speaker_range(freq: np.ndarray) -> np.ndarray:
@@ -287,7 +309,7 @@ class Orchestra:
             tone = np.zeros(frames, dtype=np.float64)
             for k, freq in enumerate(BOWL_FREQS):
                 tone += self.bowl_weights[k] * np.sin(2 * np.pi * freq * bt)
-            mix += tone * bowl_env * 0.16
+            mix += tone * bowl_env * 0.42
         self.samples += frames
         outdata[:, 0] = np.clip(mix * MASTER, -1.0, 1.0).astype(np.float32)
 
@@ -325,7 +347,8 @@ def main() -> None:
     held = {pad: False for pad, _ in TOUCH}
     bed_count = 0
     prox_smooth = 0.0
-    last_prox_print = -9999
+    last_prox_print = -9999.0
+    last_apds_print = -1
     bowl_on = False
     bowl_color = ""
     last_bowl = 0.0
@@ -351,7 +374,7 @@ def main() -> None:
                 bed_count = count
                 print(f"qwiic {prox_smooth:.0f}   {_bed_names(count)}")
                 last_prox_print = prox_smooth
-            elif abs(prox_smooth - last_prox_print) >= 120:
+            elif abs(prox_smooth - last_prox_print) >= 15:
                 last_prox_print = prox_smooth
                 print(f"qwiic {prox_smooth:.0f}   {_bed_names(count)}")
 
@@ -367,23 +390,32 @@ def main() -> None:
                     print(f"cut  {pad} {name}")
 
             diodes = read_diodes(apds.i2c_device)
+            hover = apds_level(apds.proximity)
             now = time.monotonic()
             heard = None if diodes is None else bowl_from_diodes(*diodes)
-            if heard is None:
+            if heard is None and hover <= 0.0:
                 if bowl_on and now - last_bowl > BOWL_HOLD_S:
                     bowl_on = False
                     orchestra.bowl_target = 0.0
                     print("bowl rings out")
             else:
                 last_bowl = now
-                closeness, weights = heard
+                if heard is None:
+                    closeness = hover
+                    weights = (1.0, 0.35, 0.25, 0.2)
+                else:
+                    closeness, weights = heard
+                    closeness = max(closeness, hover)
                 orchestra.bowl_target = closeness
                 orchestra.bowl_targets = weights
                 if not bowl_on:
                     bowl_on = True
-                    print("bowl")
+                    print(f"bowl  apds {apds.proximity}")
+                elif abs(apds.proximity - last_apds_print) >= 8:
+                    last_apds_print = apds.proximity
+                    print(f"apds {apds.proximity}   bowl {closeness:.2f}")
                 color = BOWL_NAMES[1 + max(range(3), key=lambda k: weights[k + 1])]
-                if color != bowl_color and closeness > 0.25:
+                if color != bowl_color and closeness > 0.7:
                     bowl_color = color
                     print(f"bowl {color}")
 

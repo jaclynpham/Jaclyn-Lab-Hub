@@ -12,9 +12,11 @@ reading means closer. The harmony bed fades up as someone leans in:
     cello + viola
     cello + viola + horn
 
-That bed also gets louder as the reading rises. Run qwiic_distance.py
-and set QWIIC_FAR and QWIIC_NEAR from the numbers you see. The count
-is not centimeters.
+That bed also gets louder as the reading rises. The same detection
+turns the servo: while someone is in range it sweeps the way
+servo_test.py does, and it returns to 0 when they leave. Run
+qwiic_distance.py and set QWIIC_FAR and QWIIC_NEAR from the numbers
+you see. The count is not centimeters.
 
 Touch. Six conductive objects on the MPR121. Holding one plays that
 line at full level. Letting go fades only that line. Viola and horn
@@ -51,6 +53,7 @@ import sounddevice as sd
 import adafruit_mpr121
 import qwiic_proximity
 from adafruit_apds9960.apds9960 import APDS9960
+from adafruit_servokit import ServoKit
 
 import canon_orchestra as score
 
@@ -66,6 +69,11 @@ QWIIC_FAR = 12
 QWIIC_NEAR = 200
 # Harmony that arrives as someone sits down, in that order.
 BED = ("cello", "viola", "horn")
+# Same hat, channel, and pulse range as servo_test.py.
+# While someone is in the Qwiic zone the servo sweeps 180 then 0.
+# Leaving the zone parks it at 0.
+SERVO_CHANNEL = 2
+SERVO_SWEEP_S = 2.0
 # Adafruit proximity is 0–255. Above APDS_FAR the bowl rings.
 APDS_FAR = 4
 APDS_NEAR = 50
@@ -342,6 +350,11 @@ def main() -> None:
         raise RuntimeError("Qwiic proximity sensor not found. Check the Qwiic cable.")
     qwiic.begin()
 
+    kit = ServoKit(channels=16, i2c=i2c)
+    servo = kit.servo[SERVO_CHANNEL]
+    servo.set_pulse_width_range(500, 2500)
+    servo.angle = 0
+
     part_index = {name: i for i, name in enumerate(score.PARTS)}
     orchestra = Orchestra()
     held = {pad: False for pad, _ in TOUCH}
@@ -352,9 +365,12 @@ def main() -> None:
     bowl_on = False
     bowl_color = ""
     last_bowl = 0.0
+    servo_spinning = False
+    servo_high = False
+    servo_step_at = 0.0
 
     print(f"Table orchestra, Canon in D, {score.BPM} BPM, D major. One speaker.")
-    print("Lean in. The Qwiic sensor adds the harmony and raises its volume.")
+    print("Lean in. The Qwiic sensor adds the harmony, raises its volume, and spins the servo.")
     print(f"  far  <= {QWIIC_FAR}   silence")
     print(f"  near >= {QWIIC_NEAR}  {_bed_names(len(BED))}")
     print("Touch an object to add that line. Let go to fade it.")
@@ -364,10 +380,26 @@ def main() -> None:
 
     try:
         while True:
+            now = time.monotonic()
             prox = float(qwiic.get_proximity())
             prox_smooth += (prox - prox_smooth) * 0.12
             count, level = bed_state(prox_smooth)
             orchestra.bed_target = level
+            if count > 0:
+                if not servo_spinning:
+                    servo_spinning = True
+                    servo_high = True
+                    servo.angle = 180
+                    servo_step_at = now
+                    print("servo spin")
+                elif now - servo_step_at >= SERVO_SWEEP_S:
+                    servo_high = not servo_high
+                    servo.angle = 180 if servo_high else 0
+                    servo_step_at = now
+            elif servo_spinning:
+                servo_spinning = False
+                servo.angle = 0
+                print("servo stop")
             if count != bed_count:
                 for i, name in enumerate(BED):
                     orchestra.bed_on[part_index[name]] = i < count
@@ -391,7 +423,6 @@ def main() -> None:
 
             diodes = read_diodes(apds.i2c_device)
             hover = apds_level(apds.proximity)
-            now = time.monotonic()
             heard = None if diodes is None else bowl_from_diodes(*diodes)
             if heard is None and hover <= 0.0:
                 if bowl_on and now - last_bowl > BOWL_HOLD_S:
@@ -423,6 +454,8 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
+        servo.angle = 0
+        time.sleep(0.5)
         orchestra.close()
 
 

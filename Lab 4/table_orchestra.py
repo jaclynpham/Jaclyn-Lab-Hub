@@ -12,11 +12,11 @@ reading means closer. The harmony bed fades up as someone leans in:
     cello + viola
     cello + viola + horn
 
-That bed also gets louder as the reading rises. The same detection
-turns the servo: while someone is in range it sweeps the way
-servo_test.py does, and it returns to 0 when they leave. Run
-qwiic_distance.py and set QWIIC_FAR and QWIIC_NEAR from the numbers
-you see. The count is not centimeters.
+That bed also gets louder as the reading rises. The servo gets no
+pulse until that same detection. While someone is in range it sweeps
+the way servo_test.py does, and the pulse is released again when they
+leave. Run qwiic_distance.py and set QWIIC_FAR and QWIIC_NEAR from
+the numbers you see. The count is not centimeters.
 
 Touch. Six conductive objects on the MPR121. Holding one plays that
 line at full level. Letting go fades only that line. Viola and horn
@@ -70,8 +70,8 @@ QWIIC_NEAR = 200
 # Harmony that arrives as someone sits down, in that order.
 BED = ("cello", "viola", "horn")
 # Same hat, channel, and pulse range as servo_test.py.
-# While someone is in the Qwiic zone the servo sweeps 180 then 0.
-# Leaving the zone parks it at 0.
+# angle None sends no pulse, so the servo stays still.
+# A Qwiic detection starts the 180 / 0 sweep. Leaving releases it again.
 SERVO_CHANNEL = 2
 SERVO_SWEEP_S = 2.0
 # Adafruit proximity is 0–255. Above APDS_FAR the bowl rings.
@@ -353,7 +353,7 @@ def main() -> None:
     kit = ServoKit(channels=16, i2c=i2c)
     servo = kit.servo[SERVO_CHANNEL]
     servo.set_pulse_width_range(500, 2500)
-    servo.angle = 0
+    servo.angle = None
 
     part_index = {name: i for i, name in enumerate(score.PARTS)}
     orchestra = Orchestra()
@@ -370,7 +370,7 @@ def main() -> None:
     servo_step_at = 0.0
 
     print(f"Table orchestra, Canon in D, {score.BPM} BPM, D major. One speaker.")
-    print("Lean in. The Qwiic sensor adds the harmony, raises its volume, and spins the servo.")
+    print("Lean in. The Qwiic sensor adds the harmony, raises its volume, and only then moves the servo.")
     print(f"  far  <= {QWIIC_FAR}   silence")
     print(f"  near >= {QWIIC_NEAR}  {_bed_names(len(BED))}")
     print("Touch an object to add that line. Let go to fade it.")
@@ -398,7 +398,7 @@ def main() -> None:
                     servo_step_at = now
             elif servo_spinning:
                 servo_spinning = False
-                servo.angle = 0
+                servo.angle = None
                 print("servo stop")
             if count != bed_count:
                 for i, name in enumerate(BED):
@@ -454,7 +454,7 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
-        servo.angle = 0
+        servo.angle = None
         time.sleep(0.5)
         orchestra.close()
 

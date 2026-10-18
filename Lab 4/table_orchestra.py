@@ -33,12 +33,13 @@ is still held after they lean away.
 Notes written below middle C are played one or two octaves higher, in the
 same key, so a small speaker can produce them.
 
-The bowl. The APDS-9960 sits under one object, looking up. A hand
-hovering there rings a D major drone (D, F-sharp, A), so it sits in
-the same chord as the canon. Moving the hand around the object shifts
-which harmonic is bright, the way a mallet wakes a singing bowl by
-circling the rim. Closer to the opening is louder. The tone keeps
-ringing for a moment after the hand leaves.
+The bowl. The APDS-9960 sits under one object, looking up. Its resting
+reading is measured at startup, and the drone stays silent until a
+hand raises it. A hand hovering there rings a D major drone (D,
+F-sharp, A), so it sits in the same chord as the canon. Moving the
+hand around the object shifts which harmonic is bright, the way a
+mallet wakes a singing bowl by circling the rim. Closer to the opening
+is louder. The tone keeps ringing for a moment after the hand leaves.
 
 All of this is mixed in one audio callback. The callback never reads
 a sensor.
@@ -76,9 +77,10 @@ BED = ("cello", "viola", "horn")
 # A Qwiic detection starts the 180 / 0 sweep. Leaving releases it again.
 SERVO_CHANNEL = 2
 SERVO_SWEEP_S = 2.0
-# Adafruit proximity is 0–255. Above APDS_FAR the bowl rings.
-APDS_FAR = 4
-APDS_NEAR = 50
+# Adafruit proximity is 0–255. The resting count is measured at startup.
+# The bowl stays silent until a hand raises it by at least APDS_MARGIN.
+APDS_MARGIN = 8
+APDS_SPAN = 40
 
 # MPR121 pad, then the part it plays while held.
 TOUCH = (
@@ -91,8 +93,10 @@ TOUCH = (
 )
 
 # APDS-9960 photodiode sums. The bowl uses these, not gesture() directions.
+# A rise above the resting sum also counts as a hand over the object.
 BOWL_MIN = 30
-BOWL_MAX = 400
+BOWL_ENERGY_MARGIN = 50
+BOWL_ENERGY_SPAN = 250
 BOWL_HOLD_S = 0.20
 BOWL_ATTACK_S = 0.30
 BOWL_RELEASE_S = 1.80
@@ -133,24 +137,28 @@ def bed_state(prox: float, floor: float) -> tuple[int, float]:
     return count, _audible(span)
 
 
-def apds_level(prox: int) -> float:
-    """Bowl loudness from the Adafruit proximity count, before any circle data."""
-    if prox <= APDS_FAR:
+def apds_level(prox: int, floor: float) -> float:
+    """Bowl loudness from the Adafruit proximity count, before any circle data.
+
+    floor is the resting count with the object in place. At or below it,
+    the bowl is silent.
+    """
+    if prox <= floor:
         return 0.0
-    span = (min(prox, APDS_NEAR) - APDS_FAR) / (APDS_NEAR - APDS_FAR)
+    span = min(prox - floor, APDS_SPAN) / APDS_SPAN
     return _audible(span)
 
 
-def bowl_from_diodes(up: float, down: float, left: float, right: float):
+def bowl_from_diodes(up: float, down: float, left: float, right: float, energy_floor: float):
     """Volume and four harmonic weights from one hover around the object.
 
     Returns None when the hand is not over the opening. The fundamental
     stays present. Circling crossfades the fifth, octave, and third.
     """
     energy = up + down + left + right
-    if energy < BOWL_MIN:
+    if energy <= energy_floor:
         return None
-    span = (min(energy, BOWL_MAX) - BOWL_MIN) / (BOWL_MAX - BOWL_MIN)
+    span = min(energy - energy_floor, BOWL_ENERGY_SPAN) / BOWL_ENERGY_SPAN
     level = _audible(span)
     x = right - left
     y = up - down
@@ -353,15 +361,27 @@ def main() -> None:
         raise RuntimeError("Qwiic proximity sensor not found. Check the Qwiic cable.")
     qwiic.begin()
 
-    print("Step back. Learning the empty Qwiic reading...")
+    print("Step back from the Qwiic sensor, and leave the bowl object as it sits.")
     resting_samples = []
+    apds_samples = []
+    energy_samples = []
     for _ in range(8):
         resting_samples.append(float(qwiic.get_proximity()))
+        apds_samples.append(int(apds.proximity))
+        diodes = read_diodes(apds.i2c_device)
+        if diodes is not None:
+            energy_samples.append(sum(diodes))
         time.sleep(0.05)
     qwiic_floor = max(resting_samples) + QWIIC_MARGIN
+    apds_floor = max(apds_samples) + APDS_MARGIN
+    energy_floor = (max(energy_samples) if energy_samples else float(BOWL_MIN)) + BOWL_ENERGY_MARGIN
     print(
-        f"Empty reading {max(resting_samples):.0f}. "
+        f"Empty Qwiic reading {max(resting_samples):.0f}. "
         f"Harmony starts above {qwiic_floor:.0f}."
+    )
+    print(
+        f"Resting proximity {max(apds_samples)}. "
+        f"Bowl starts above {apds_floor:.0f}."
     )
 
     kit = ServoKit(channels=16, i2c=i2c)
@@ -436,8 +456,8 @@ def main() -> None:
                     print(f"cut  {pad} {name}")
 
             diodes = read_diodes(apds.i2c_device)
-            hover = apds_level(apds.proximity)
-            heard = None if diodes is None else bowl_from_diodes(*diodes)
+            hover = apds_level(apds.proximity, apds_floor)
+            heard = None if diodes is None else bowl_from_diodes(*diodes, energy_floor)
             if heard is None and hover <= 0.0:
                 if bowl_on and now - last_bowl > BOWL_HOLD_S:
                     bowl_on = False

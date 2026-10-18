@@ -12,11 +12,11 @@ reading means closer. The harmony bed fades up as someone leans in:
     cello + viola
     cello + viola + horn
 
-That bed also gets louder as the reading rises. The servo gets no
-pulse until that same detection. While someone is in range it sweeps
-the way servo_test.py does, and the pulse is released again when they
-leave. Run qwiic_distance.py and set QWIIC_FAR and QWIIC_NEAR from
-the numbers you see. The count is not centimeters.
+That bed also gets louder as the reading rises. At startup the script
+reads the empty table and stays silent until someone raises the count
+above that. The servo gets no pulse until that same detection. While
+someone is in range it sweeps the way servo_test.py does, and the
+pulse is released again when they leave. The count is not centimeters.
 
 Touch. Six conductive objects on the MPR121. Holding one plays that
 line at full level. Letting go fades only that line. Viola and horn
@@ -63,10 +63,12 @@ MASTER = 1.0
 # until they clear it. C stays C, so the harmony does not change.
 SPEAKER_FLOOR = 261.63
 
-# Qwiic proximity counts. Higher means closer. Tune from the qwiic lines.
-# A hand in range should already be loud; closer adds the rest of the bed.
-QWIIC_FAR = 12
-QWIIC_NEAR = 200
+# Qwiic proximity counts. Higher means closer.
+# The empty table is measured at startup. Harmony and the servo stay
+# off until the reading rises above that resting count by QWIIC_MARGIN.
+# QWIIC_SPAN counts past that point bring in the full bed.
+QWIIC_MARGIN = 30
+QWIIC_SPAN = 180
 # Harmony that arrives as someone sits down, in that order.
 BED = ("cello", "viola", "horn")
 # Same hat, channel, and pulse range as servo_test.py.
@@ -117,13 +119,14 @@ def _audible(span: float) -> float:
     return 0.62 + 0.38 * span
 
 
-def bed_state(prox: float) -> tuple[int, float]:
-    """How many bed parts are on, and how loud the bed is, from one proximity count."""
-    if QWIIC_NEAR <= QWIIC_FAR:
-        raise ValueError("QWIIC_NEAR must be greater than QWIIC_FAR")
-    if prox <= QWIIC_FAR:
+def bed_state(prox: float, floor: float) -> tuple[int, float]:
+    """How many bed parts are on, and how loud the bed is, from one proximity count.
+
+    floor is the empty-table count. At or below it, the bed is silent.
+    """
+    if prox <= floor:
         return 0, 0.0
-    span = (min(prox, QWIIC_NEAR) - QWIIC_FAR) / (QWIIC_NEAR - QWIIC_FAR)
+    span = min(prox - floor, QWIIC_SPAN) / QWIIC_SPAN
     count = int(span * len(BED)) + 1
     if count > len(BED):
         count = len(BED)
@@ -350,6 +353,17 @@ def main() -> None:
         raise RuntimeError("Qwiic proximity sensor not found. Check the Qwiic cable.")
     qwiic.begin()
 
+    print("Step back. Learning the empty Qwiic reading...")
+    resting_samples = []
+    for _ in range(8):
+        resting_samples.append(float(qwiic.get_proximity()))
+        time.sleep(0.05)
+    qwiic_floor = max(resting_samples) + QWIIC_MARGIN
+    print(
+        f"Empty reading {max(resting_samples):.0f}. "
+        f"Harmony starts above {qwiic_floor:.0f}."
+    )
+
     kit = ServoKit(channels=16, i2c=i2c)
     servo = kit.servo[SERVO_CHANNEL]
     servo.set_pulse_width_range(500, 2500)
@@ -371,8 +385,8 @@ def main() -> None:
 
     print(f"Table orchestra, Canon in D, {score.BPM} BPM, D major. One speaker.")
     print("Lean in. The Qwiic sensor adds the harmony, raises its volume, and only then moves the servo.")
-    print(f"  far  <= {QWIIC_FAR}   silence")
-    print(f"  near >= {QWIIC_NEAR}  {_bed_names(len(BED))}")
+    print(f"  far  <= {qwiic_floor:.0f}   silence")
+    print(f"  near >= {qwiic_floor + QWIIC_SPAN:.0f}  {_bed_names(len(BED))}")
     print("Touch an object to add that line. Let go to fade it.")
     for pad, name in TOUCH:
         print(f"  pad {pad}  {name}")
@@ -383,7 +397,7 @@ def main() -> None:
             now = time.monotonic()
             prox = float(qwiic.get_proximity())
             prox_smooth += (prox - prox_smooth) * 0.12
-            count, level = bed_state(prox_smooth)
+            count, level = bed_state(prox_smooth, qwiic_floor)
             orchestra.bed_target = level
             if count > 0:
                 if not servo_spinning:

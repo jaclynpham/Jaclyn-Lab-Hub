@@ -642,7 +642,7 @@ Earlier passes are documented above: the Grieg march, the Ode to Joy Twizzler or
 
 **Note.** A servo under the table is meant to bloom a flower as the conductor comes into range of the distance sensor. The motion is written into [`table_orchestra.py`](table_orchestra.py): the flower sweeps while someone is close and rests when they leave. On the day of filming the servo did not run. The video below shows the sound without that bloom. We will submit a revised video once the flower is working.
 
-[Final demo](https://youtu.be/-xJ-nx6M46k?si=GdRVrztpEzLHYCjd)
+[![Tinfoil Concerto final demo](https://img.youtube.com/vi/-xJ-nx6M46k/hqdefault.jpg)](https://youtu.be/-xJ-nx6M46k?si=GdRVrztpEzLHYCjd)
 
 [Sensor-by-sensor walkthrough](https://www.instagram.com/p/DeqIdZ1jF_7/?img_index=1)
 

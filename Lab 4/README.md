@@ -1,29 +1,11 @@
 # Ph-UI!!!
 
+Members: Jaclyn Pham (cqp4), Vasudha Devkota (vd269), Aryan Palave (ap2578)
+
 <details>
 <summary><strong>Lab structure and instructions (click to expand)</strong></summary>
 
-<details>
-	<summary><strong>Instructions for Students (Click to Expand)</strong></summary>
-  
-	**Submission Cleanup Reminder:**
-	- This README.md contains extra instructional text for guidance.
-	- Before submitting, remove all instructional text and example prompts from this file.
-	- You may delete these sections or use the toggle/hide feature in VS Code to collapse them for a cleaner look.
-	- Your final submission should be neat, focused on your own work, and easy to read for grading.
-  
-	This helps ensure your README.md is clear, professional, and uniquely yours!
-</details>
-
----
-
----
-
 ## Lab Overview
-Team: 
-Members: Jaclyn Pham (cqp4)
-Clock name: <name>
-
 
 For lab this week, we focus on both sensing and actuation, bringing new modes of input and output into your devices, while also prototyping the physical structure and overall look of the device. You will consider how the physical form supports sensing and actuation, and how these elements come together to shape the interaction and aesthetics of the device.
 
@@ -448,6 +430,9 @@ Sketch 04’s fade is part of the inlay even though the lamp moves under the tab
 
 ---
 
+<details>
+<summary><strong>Part 2 lab instructions (click to expand)</strong></summary>
+
 ## Part 2
 
 Following exploration and reflection from Part 1, complete the "looks like," "works like" and "acts like" prototypes for your design, reiterated below.
@@ -643,16 +628,56 @@ Document all the prototypes and iterations you have designed and worked on! Agai
 * "Works like": shows what the device can do
 * "Acts like": shows how a person would interact with the device
 
----
+</details>
 
-## Deliverables \& Submission for Lab 4
+### Part F
 
-The deliverables for this lab are, writings, sketches, photos, and videos that show what your prototype:
-* "Looks like": shows how the device should look, feel, sit, weigh, etc.
-* "Works like": shows what the device can do.
-* "Acts like": shows how a person would interact with the device.
+### Final Documentation
 
-For submission, the readme.md page for this lab should be edited to include the work you have done:
-* Upload any materials that explain what you did, into your lab 4 repository, and link them in your lab 4 readme.md.
-* Link your Lab 4 readme.md in your main Interactive-Lab-Hub readme.md. 
-* Labs are due on Mondays, make sure to submit your Lab 4 readme.md to Canvas.
+#### Tinfoil Concerto
+
+**Tinfoil Concerto** is built from the earlier sound and sensing tests. It is a small dining table for one. Ode to Joy loops in C major at 100 BPM, and every layer meets in one speaker. The score and the instrument voices come from [`twizzler_orchestra.py`](twizzler_orchestra.py). The table that joins them is [`table_orchestra.py`](table_orchestra.py).
+
+Earlier passes are documented above: the Grieg march, the Ode to Joy Twizzler orchestra, the house-beat DJ, and the light pattern. Those tests used Twizzlers as stand-ins for spoons. In the final piece the conductive tableware is tinfoil, and three sensors share one clock so a late gesture still lands on the beat.
+
+**Note.** A servo under the table is meant to bloom a flower as the conductor comes into range of the distance sensor. The motion is written into [`table_orchestra.py`](table_orchestra.py): the flower sweeps while someone is close and rests when they leave. On the day of filming the servo did not run. The video below shows the sound without that bloom. We will submit a revised video once the flower is working.
+
+[Final demo](https://youtu.be/-xJ-nx6M46k?si=GdRVrztpEzLHYCjd)
+
+[Sensor-by-sensor walkthrough](https://www.instagram.com/p/DeqIdZ1jF_7/?img_index=1)
+
+#### Looks like
+
+The diner sees a place setting, not a circuit. Pieces of tinfoil tableware sit on the surface where a hand would naturally land: a spoon, a cup, a plate. The Raspberry Pi, the MPR121, and the speaker stay under the table. The SparkFun VCNL4040 watches the approach from the setting. The Adafruit APDS-9960 looks up from beneath one object, so the opening reads as part of the ware. A paper flower on a servo is the one moving part, meant to open as someone sits down. In the filmed version that flower stays still.
+
+#### Works like
+
+Three sensors write into one mix. The audio callback never reads a sensor. The main loop only sets targets, and each part fades in and out on the shared clock.
+
+| Action | Sensor | What joins the piece |
+| --- | --- | --- |
+| Approaching the table | SparkFun VCNL4040, about 20 cm | The bass harmony builds: cello, then cello and viola, then cello, viola, and horn. It also grows louder. The flower servo is meant to sweep here. |
+| Holding a piece of tableware | MPR121 capacitive touch | One higher line, at full level, for as long as the foil is held |
+| Letting go | MPR121 | Only that line fades. Viola and horn can remain if the person is still close enough for the distance bed. |
+| Circling one object | Adafruit APDS-9960 | A C major drone (C, E, G). The place of the hand around the rim brightens the fifth, the octave, or the third. A still hand is silent. The tone rings briefly after the circle stops. |
+
+The tinfoil is clipped to six pads:
+
+| Pad | Instrument |
+| --- | --- |
+| 1 | violin |
+| 3 | flute |
+| 5 | oboe |
+| 6 | timpani |
+| 8 | viola |
+| 10 | horn |
+
+Notes written below middle C are played one or two octaves higher, in the same key, so the small speaker can produce them. The timpani is a struck drum on those lifted pitches. At startup the script measures the empty table, so the distance harmony and the drone stay silent until someone actually arrives.
+
+#### Acts like
+
+Someone walks up to a quiet table. As they come closer, the distance sensor hears them and builds the harmony from the bottom: cello, then viola, then horn, louder as they sit. The flower is meant to bloom with that approach. On the filmed day it did not, so the arrival is carried by the harmony alone.
+
+Their hands find the tableware. Holding a piece brings in a brighter voice, the violin, the flute, the oboe, or the timpani, and letting go fades only that voice. The low harmony can keep going underneath if they remain seated close.
+
+One object asks for a slower hand. Resting on it does nothing. Circling it, the way a mallet wakes a singing bowl, rings a soft chord in the same key as Ode to Joy. Moving around the rim changes which harmonic is bright, and the tone lingers for a moment after the circle stops.

@@ -1,7 +1,7 @@
 """One table, one speaker, three sensors, all in A minor.
 
 The piece is the house beat from twizzler_dj.py. It loops at 120 BPM.
-Kick, hats, clap, bass, chord, and arp stay on the same bar.
+Timpani, hats, clap, bass, chord, and arp stay on the same bar.
 
 Sitting down. The Qwiic VCNL4040 watches the place setting. A higher
 reading means closer. The groove fades up as someone leans in:
@@ -9,7 +9,7 @@ reading means closer. The groove fades up as someone leans in:
     far                  silence
     bass
     bass + chord
-    bass + chord + kick
+    bass + chord + timpani
 
 That bed also gets louder as the reading rises. At startup the script
 reads the empty table and stays silent until someone raises the count
@@ -18,11 +18,11 @@ someone is in range it sweeps the way servo_test.py does, and the
 pulse is released again when they leave. The count is not centimeters.
 
 Touch. Six conductive objects on the MPR121. Holding one plays that
-part at full level. Letting go fades only that part. Bass and kick
+part at full level. Letting go fades only that part. Bass and timpani
 also join when someone sits close, and stay if the pad is still held
 after they lean away.
 
-    pad 1    kick
+    pad 1    timpani
     pad 3    hats
     pad 5    clap
     pad 6    bass
@@ -30,7 +30,7 @@ after they lean away.
     pad 10   arp
 
 Notes written below middle C are played one or two octaves higher, in the
-same key, so a small speaker can produce them. The kick keeps its low sweep.
+same key, so a small speaker can produce them. The timpani is tuned to A.
 
 The bowl. The APDS-9960 sits under one object, looking up. Its resting
 reading is measured at startup, and the drone stays silent until a
@@ -203,9 +203,24 @@ def _chord_stab(t, eighth):
     return env * tone / 3
 
 
+def _timpani_hit(t, noise):
+    """A struck drum tuned to A4, with a mallet attack and a short ring.
+
+    The old kick lived near 48 Hz, under what this speaker can play.
+    """
+    pitch = 440.0
+    drop = (pitch * 0.1) * (1.0 - np.exp(-16.0 * t))
+    phase = 2 * np.pi * (pitch * t - drop)
+    ring = np.exp(-t * 8.0)
+    head = np.sin(1.9 * phase) * np.exp(-t * 14.0)
+    mallet = noise * np.exp(-t * 50.0)
+    tick = np.sin(2 * np.pi * 1500.0 * t) * np.exp(-t * 70.0)
+    return ring * (np.sin(phase) + 0.4 * head) + 0.5 * mallet + 0.18 * tick
+
+
 def _layer(index, t_beat, t_eighth, t_step, beat, eighth, step, noise):
     if index == 0:
-        return deck._kick(t_beat)
+        return _timpani_hit(t_beat, noise)
     if index == 1:
         return deck._hats(t_eighth, eighth, noise)
     if index == 2:
@@ -363,10 +378,16 @@ class Orchestra:
         self.stream.close()
 
 
+def _shown(name: str) -> str:
+    if name == "kick":
+        return "timpani"
+    return name
+
+
 def _bed_names(count: int) -> str:
     if count <= 0:
         return "silence"
-    return " + ".join(BED[:count])
+    return " + ".join(_shown(name) for name in BED[:count])
 
 
 def main() -> None:
@@ -435,7 +456,7 @@ def main() -> None:
     print(f"  near >= {qwiic_floor + QWIIC_SPAN:.0f}  {_bed_names(len(BED))}")
     print("Touch an object to add that line. Let go to fade it.")
     for pad, name in TOUCH:
-        print(f"  pad {pad}  {name}")
+        print(f"  pad {pad}  {_shown(name)}")
     print("Circle a hand over the bowl object. Closer is louder. It rings after you leave.")
 
     try:

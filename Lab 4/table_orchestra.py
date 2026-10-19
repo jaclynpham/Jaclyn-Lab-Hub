@@ -34,13 +34,12 @@ Notes written below middle C are played one or two octaves higher, in the
 same key, so a small speaker can produce them. The timpani is a struck
 drum on those same notes.
 
-The bowl. The APDS-9960 sits under one object, looking up. Its resting
-reading is measured at startup, and the drone stays silent until a
-hand raises it. A hand hovering there rings a C major drone (C, E, G),
-so it sits in the same chord as Ode to Joy. Moving the hand around the
-object shifts which harmonic is bright, the way a mallet wakes a singing
-bowl by circling the rim. Closer to the opening is louder. The tone keeps
-ringing for a moment after the hand leaves.
+The bowl. The APDS-9960 sits under one object, looking up. A hand
+resting over it stays silent. Circling the rim, the way a mallet wakes
+a singing bowl, rings a C major drone (C, E, G), so it sits in the same
+chord as Ode to Joy. Where the hand is around the circle picks which
+harmonic is bright. The tone keeps ringing for a moment after the
+circle stops.
 
 All of this is mixed in one audio callback. The callback never reads
 a sensor.
@@ -78,11 +77,6 @@ BED = ("cello", "viola", "horn")
 # A Qwiic detection starts the 180 / 0 sweep. Leaving releases it again.
 SERVO_CHANNEL = 2
 SERVO_SWEEP_S = 2.0
-# Adafruit proximity is 0–255. The resting count is measured at startup.
-# The bowl stays silent until a hand raises it by at least APDS_MARGIN.
-APDS_MARGIN = 8
-APDS_SPAN = 40
-
 # MPR121 pad, then the part it plays while held.
 TOUCH = (
     (1, "violin"),
@@ -138,40 +132,36 @@ def bed_state(prox: float, floor: float) -> tuple[int, float]:
     return count, _audible(span)
 
 
-def apds_level(prox: int, floor: float) -> float:
-    """Bowl loudness from the Adafruit proximity count, before any circle data.
-
-    floor is the resting count with the object in place. At or below it,
-    the bowl is silent.
-    """
-    if prox <= floor:
-        return 0.0
-    span = min(prox - floor, APDS_SPAN) / APDS_SPAN
-    return _audible(span)
+def _angle_delta(a: float, b: float) -> float:
+    """Shortest step between two angles, in radians."""
+    return abs((a - b + math.pi) % (2 * math.pi) - math.pi)
 
 
 def bowl_from_diodes(up: float, down: float, left: float, right: float, energy_floor: float):
-    """Volume and four harmonic weights from one hover around the object.
+    """Loudness, harmonic weights, and the hand's angle around the rim.
 
-    Returns None when the hand is not over the opening. The fundamental
-    stays present. Circling crossfades the fifth, octave, and third.
+    Returns None when nothing is over the opening. A still hand keeps a
+    steady angle, so the caller can tell a circle from a proximity hover.
     """
     energy = up + down + left + right
-    if energy <= energy_floor:
+    if energy < BOWL_MIN:
         return None
-    span = min(energy - energy_floor, BOWL_ENERGY_SPAN) / BOWL_ENERGY_SPAN
-    level = _audible(span)
+    if energy <= energy_floor:
+        level = 0.0
+    else:
+        span = min(energy - energy_floor, BOWL_ENERGY_SPAN) / BOWL_ENERGY_SPAN
+        level = _audible(span)
     x = right - left
     y = up - down
+    angle = math.atan2(y, x)
     if math.hypot(x, y) < 12:
         weights = (1.0, 0.22, 0.16, 0.12)
     else:
-        angle = math.atan2(y, x)
         fifth = 0.12 + 0.55 * (0.5 + 0.5 * math.cos(angle))
         octave = 0.12 + 0.55 * (0.5 + 0.5 * math.cos(angle - 2.094395))
         third = 0.08 + 0.42 * (0.5 + 0.5 * math.cos(angle + 2.094395))
         weights = (1.0, fifth, octave, third)
-    return level, weights
+    return level, weights, angle
 
 
 def _in_speaker_range(freq: np.ndarray) -> np.ndarray:
@@ -375,25 +365,18 @@ def main() -> None:
 
     print("Step back from the Qwiic sensor, and leave the bowl object as it sits.")
     resting_samples = []
-    apds_samples = []
     energy_samples = []
     for _ in range(8):
         resting_samples.append(float(qwiic.get_proximity()))
-        apds_samples.append(int(apds.proximity))
         diodes = read_diodes(apds.i2c_device)
         if diodes is not None:
             energy_samples.append(sum(diodes))
         time.sleep(0.05)
     qwiic_floor = max(resting_samples) + QWIIC_MARGIN
-    apds_floor = max(apds_samples) + APDS_MARGIN
     energy_floor = (max(energy_samples) if energy_samples else float(BOWL_MIN)) + BOWL_ENERGY_MARGIN
     print(
         f"Empty Qwiic reading {max(resting_samples):.0f}. "
         f"Harmony starts above {qwiic_floor:.0f}."
-    )
-    print(
-        f"Resting proximity {max(apds_samples)}. "
-        f"Bowl starts above {apds_floor:.0f}."
     )
 
     kit = ServoKit(channels=16, i2c=i2c)
@@ -407,10 +390,11 @@ def main() -> None:
     bed_count = 0
     prox_smooth = 0.0
     last_prox_print = -9999.0
-    last_apds_print = -1
     bowl_on = False
     bowl_color = ""
     last_bowl = 0.0
+    last_angle = None
+    circle_motion = 0.0
     servo_spinning = False
     servo_high = False
     servo_step_at = 0.0
@@ -422,7 +406,7 @@ def main() -> None:
     print("Touch an object to add that line. Let go to fade it.")
     for pad, name in TOUCH:
         print(f"  pad {pad}  {name}")
-    print("Circle a hand over the bowl object. Closer is louder. It rings after you leave.")
+    print("Circle a hand around the bowl. A still hand stays silent. It rings after you stop.")
 
     try:
         while True:
@@ -468,33 +452,32 @@ def main() -> None:
                     print(f"cut  {pad} {name}")
 
             diodes = read_diodes(apds.i2c_device)
-            hover = apds_level(apds.proximity, apds_floor)
             heard = None if diodes is None else bowl_from_diodes(*diodes, energy_floor)
-            if heard is None and hover <= 0.0:
-                if bowl_on and now - last_bowl > BOWL_HOLD_S:
-                    bowl_on = False
-                    orchestra.bowl_target = 0.0
-                    print("bowl rings out")
+            circling = False
+            if heard is not None:
+                closeness, weights, angle = heard
+                if last_angle is not None:
+                    circle_motion = circle_motion * 0.8 + _angle_delta(angle, last_angle)
+                last_angle = angle
+                circling = circle_motion > 0.05
             else:
+                last_angle = None
+                circle_motion = 0.0
+            if circling:
                 last_bowl = now
-                if heard is None:
-                    closeness = hover
-                    weights = (1.0, 0.35, 0.25, 0.2)
-                else:
-                    closeness, weights = heard
-                    closeness = max(closeness, hover)
-                orchestra.bowl_target = closeness
+                orchestra.bowl_target = max(closeness, 0.62)
                 orchestra.bowl_targets = weights
                 if not bowl_on:
                     bowl_on = True
-                    print(f"bowl  apds {apds.proximity}")
-                elif abs(apds.proximity - last_apds_print) >= 8:
-                    last_apds_print = apds.proximity
-                    print(f"apds {apds.proximity}   bowl {closeness:.2f}")
+                    print("bowl circle")
                 color = BOWL_NAMES[1 + max(range(3), key=lambda k: weights[k + 1])]
-                if color != bowl_color and closeness > 0.7:
+                if color != bowl_color:
                     bowl_color = color
                     print(f"bowl {color}")
+            elif bowl_on and now - last_bowl > BOWL_HOLD_S:
+                bowl_on = False
+                orchestra.bowl_target = 0.0
+                print("bowl rings out")
 
             time.sleep(0.01)
     except KeyboardInterrupt:

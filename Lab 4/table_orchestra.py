@@ -1,15 +1,16 @@
-"""One table, one speaker, three sensors, all in A minor.
+"""One table, one speaker, three sensors, all in C major.
 
-The piece is the house beat from twizzler_dj.py. It loops at 120 BPM.
-Timpani, hats, clap, bass, chord, and arp stay on the same bar.
+The piece is Beethoven's Ode to Joy, the same score as
+twizzler_orchestra.py. It loops at 100 BPM. The parts are written to
+enter on top of each other and stay in one harmony.
 
 Sitting down. The Qwiic VCNL4040 watches the place setting. A higher
-reading means closer. The groove fades up as someone leans in:
+reading means closer. The harmony bed fades up as someone leans in:
 
     far                  silence
-    bass
-    bass + chord
-    bass + chord + timpani
+    cello
+    cello + viola
+    cello + viola + horn
 
 That bed also gets louder as the reading rises. At startup the script
 reads the empty table and stays silent until someone raises the count
@@ -18,24 +19,25 @@ someone is in range it sweeps the way servo_test.py does, and the
 pulse is released again when they leave. The count is not centimeters.
 
 Touch. Six conductive objects on the MPR121. Holding one plays that
-part at full level. Letting go fades only that part. Bass and timpani
-also join when someone sits close, and stay if the pad is still held
-after they lean away.
+line at full level. Letting go fades only that line. Viola and horn
+also join the harmony when someone sits close, and stay if the pad
+is still held after they lean away.
 
-    pad 1    timpani
-    pad 3    hats
-    pad 5    clap
-    pad 6    bass
-    pad 8    chord
-    pad 10   arp
+    pad 1    violin
+    pad 3    flute
+    pad 5    oboe
+    pad 6    timpani
+    pad 8    viola
+    pad 10   horn
 
 Notes written below middle C are played one or two octaves higher, in the
-same key, so a small speaker can produce them. The timpani is tuned to A.
+same key, so a small speaker can produce them. The timpani is a struck
+drum on those same notes.
 
 The bowl. The APDS-9960 sits under one object, looking up. Its resting
 reading is measured at startup, and the drone stays silent until a
-hand raises it. A hand hovering there rings an A minor drone (A, C, E),
-so it sits in the same chord as the beat. Moving the hand around the
+hand raises it. A hand hovering there rings a C major drone (C, E, G),
+so it sits in the same chord as Ode to Joy. Moving the hand around the
 object shifts which harmonic is bright, the way a mallet wakes a singing
 bowl by circling the rim. Closer to the opening is louder. The tone keeps
 ringing for a moment after the hand leaves.
@@ -55,7 +57,7 @@ import qwiic_proximity
 from adafruit_apds9960.apds9960 import APDS9960
 from adafruit_servokit import ServoKit
 
-import twizzler_dj as deck
+import twizzler_orchestra as score
 
 # 1.0 is full scale, the "volume 100" level.
 MASTER = 1.0
@@ -69,8 +71,8 @@ SPEAKER_FLOOR = 261.63
 # QWIIC_SPAN counts past that point bring in the full bed.
 QWIIC_MARGIN = 30
 QWIIC_SPAN = 180
-# Groove that arrives as someone sits down, in that order.
-BED = ("bass", "chord", "kick")
+# Harmony that arrives as someone sits down, in that order.
+BED = ("cello", "viola", "horn")
 # Same hat, channel, and pulse range as servo_test.py.
 # angle None sends no pulse, so the servo stays still.
 # A Qwiic detection starts the 180 / 0 sweep. Leaving releases it again.
@@ -83,15 +85,13 @@ APDS_SPAN = 40
 
 # MPR121 pad, then the part it plays while held.
 TOUCH = (
-    (1, "kick"),
-    (3, "hats"),
-    (5, "clap"),
-    (6, "bass"),
-    (8, "chord"),
-    (10, "arp"),
+    (1, "violin"),
+    (3, "flute"),
+    (5, "oboe"),
+    (6, "timpani"),
+    (8, "viola"),
+    (10, "horn"),
 )
-# Same mix levels as twizzler_dj.py, in PARTS order.
-LEVELS = (0.9, 0.35, 0.55, 0.45, 0.4, 0.28)
 
 # APDS-9960 photodiode sums. The bowl uses these, not gesture() directions.
 # A rise above the resting sum also counts as a hand over the object.
@@ -101,9 +101,8 @@ BOWL_ENERGY_SPAN = 250
 BOWL_HOLD_S = 0.20
 BOWL_ATTACK_S = 0.30
 BOWL_RELEASE_S = 1.80
-# A minor partials, from the DJ stab. The root is lifted one octave.
-_ROOT = deck.STAB[0] * 2
-BOWL_FREQS = (_ROOT, _ROOT * 3 / 2, _ROOT * 2, _ROOT * 12 / 5)
+# C major partials, from C4 up: fundamental, fifth, octave, third.
+BOWL_FREQS = (score.C4, score.G4, score.C4 * 2, score.E4 * 2)
 BOWL_NAMES = ("fundamental", "fifth", "octave", "third")
 
 # Gesture FIFO registers. gesture() would block until the hand left and
@@ -186,54 +185,19 @@ def _in_speaker_range(freq: np.ndarray) -> np.ndarray:
     return out
 
 
-def _bass_line(t, eighth):
-    """The DJ bass line, raised until a small speaker can play it."""
-    freq = _in_speaker_range(deck.BASS[eighth])
-    env = np.exp(-t * 6) * (freq > 0)
-    w = 2 * np.pi * freq * t
-    return env * (np.sin(w) + 0.4 * np.sin(2 * w) + 0.15 * np.sin(3 * w))
-
-
-def _chord_stab(t, eighth):
-    """The A minor stab, with the low root lifted."""
-    on = (eighth == 1) | (eighth == 5)
-    env = np.exp(-t * 9) * on
-    tones = _in_speaker_range(np.asarray(deck.STAB, dtype=np.float64))
-    tone = sum(np.sin(2 * np.pi * freq * t) for freq in tones)
-    return env * tone / 3
-
-
-def _timpani_hit(t, noise):
-    """A struck drum tuned to A4, with a mallet attack and a short ring.
-
-    The old kick lived near 48 Hz, under what this speaker can play.
-    """
-    pitch = 440.0
-    drop = (pitch * 0.1) * (1.0 - np.exp(-16.0 * t))
-    phase = 2 * np.pi * (pitch * t - drop)
-    ring = np.exp(-t * 8.0)
+def _timpani(t, f, remain, noise):
+    """Struck drum on the written pitch, with a mallet attack and a short ring."""
+    drop = (f * 0.1) * (1.0 - np.exp(-16.0 * t))
+    phase = 2 * np.pi * (f * t - drop)
+    ring = np.exp(-t * 8.0) * np.clip(remain / score.RELEASE, 0.0, 1.0) * (f > 0.0)
     head = np.sin(1.9 * phase) * np.exp(-t * 14.0)
     mallet = noise * np.exp(-t * 50.0)
     tick = np.sin(2 * np.pi * 1500.0 * t) * np.exp(-t * 70.0)
-    return ring * (np.sin(phase) + 0.4 * head) + 0.5 * mallet + 0.18 * tick
-
-
-def _layer(index, t_beat, t_eighth, t_step, beat, eighth, step, noise):
-    if index == 0:
-        return _timpani_hit(t_beat, noise)
-    if index == 1:
-        return deck._hats(t_eighth, eighth, noise)
-    if index == 2:
-        return deck._clap(t_beat, beat, noise)
-    if index == 3:
-        return _bass_line(t_eighth, eighth)
-    if index == 4:
-        return _chord_stab(t_eighth, eighth)
-    return deck._arp(t_step, step)
+    return ring * (np.sin(phase) + 0.4 * head) + (f > 0.0) * (0.5 * mallet + 0.18 * tick)
 
 
 def _glide(start: float, target: float, frames: int, seconds: float) -> tuple[np.ndarray, float]:
-    step = 1.0 / max(1, int(seconds * deck.SAMPLE_RATE))
+    step = 1.0 / max(1, int(seconds * score.SAMPLE_RATE))
     ramp = np.arange(1, frames + 1)
     if target >= start:
         values = np.minimum(start + step * ramp, target)
@@ -294,7 +258,7 @@ class Orchestra:
     """Shared clock. Sensors only set targets. This mixes them."""
 
     def __init__(self) -> None:
-        n = len(deck.PARTS)
+        n = len(score.PARTS)
         self.touch_on = [False] * n
         self.bed_on = [False] * n
         self.touch_gain = [0.0] * n
@@ -308,7 +272,7 @@ class Orchestra:
         self.n = 0
         self.samples = 0
         self.stream = sd.OutputStream(
-            samplerate=deck.SAMPLE_RATE,
+            samplerate=score.SAMPLE_RATE,
             channels=1,
             dtype="float32",
             blocksize=512,
@@ -319,20 +283,24 @@ class Orchestra:
     def _callback(self, outdata, frames, _time, status) -> None:
         if status:
             print(status)
-        pos = (self.n + np.arange(frames)) % deck.BAR
-        self.n = (self.n + frames) % deck.BAR
-        t_beat = (pos % deck.BEAT) / deck.SAMPLE_RATE
-        beat = (pos * 4) // deck.BAR
-        eighth = (pos * 8) // deck.BAR
-        step = (pos * 16) // deck.BAR
-        t_eighth = (pos - (eighth * deck.BAR) // 8) / deck.SAMPLE_RATE
-        t_step = (pos - (step * deck.BAR) // 16) / deck.SAMPLE_RATE
+        idx = (self.n + np.arange(frames)) % score.PHRASE
+        self.n = (self.n + frames) % score.PHRASE
         noise = np.random.uniform(-1.0, 1.0, frames)
+        parts = (
+            (score._violin, score.VIOLIN_F, score.VIOLIN_AGE, score.VIOLIN_DUR, 0.34),
+            (score._viola, score.VIOLA_F, score.VIOLA_AGE, score.VIOLA_DUR, 0.30),
+            (score._cello, score.CELLO_F, score.CELLO_AGE, score.CELLO_DUR, 0.42),
+            (score._flute, score.FLUTE_F, score.FLUTE_AGE, score.FLUTE_DUR, 0.26),
+            (score._horn, score.HORN_F, score.HORN_AGE, score.HORN_DUR, 0.36),
+            (_timpani, score.TIMPANI_F, score.TIMPANI_AGE, score.TIMPANI_DUR, 0.50),
+            (score._oboe, score.OBOE_F, score.OBOE_AGE, score.OBOE_DUR, 0.34),
+        )
+        into = idx % score.EIGHTH
         mix = np.zeros(frames, dtype=np.float64)
-        step_up = 1.0 / int(0.02 * deck.SAMPLE_RATE)
+        step_up = 1.0 / int(0.10 * score.SAMPLE_RATE)
         ramp = np.arange(1, frames + 1)
         bed_env, self.bed_level = _glide(self.bed_level, self.bed_target, frames, 0.25)
-        for i in range(len(deck.PARTS)):
+        for i, (voice, freq, age, dur, level) in enumerate(parts):
             touch_target = 1.0 if self.touch_on[i] else 0.0
             bed_part_target = 1.0 if self.bed_on[i] else 0.0
             if (
@@ -352,12 +320,15 @@ class Orchestra:
             else:
                 bed_g = np.maximum(self.bed_gain[i] - step_up * ramp, 0.0)
             self.bed_gain[i] = float(bed_g[-1])
-            if deck.PARTS[i] in BED:
+            if score.PARTS[i] in BED:
                 gains = np.maximum(touch_g, bed_g * bed_env)
             else:
                 gains = touch_g
-            layer = _layer(i, t_beat, t_eighth, t_step, beat, eighth, step, noise)
-            mix += gains * layer * LEVELS[i]
+            slot = idx // score.EIGHTH
+            heard = _in_speaker_range(freq[slot])
+            t = (age[slot] * score.EIGHTH + into) / score.SAMPLE_RATE
+            remain = dur[slot] * score.EIGHTH - age[slot] * score.EIGHTH - into
+            mix += gains * voice(t, heard, remain, noise) * level
 
         bowl_seconds = BOWL_ATTACK_S if self.bowl_target >= self.bowl_level else BOWL_RELEASE_S
         bowl_env, self.bowl_level = _glide(self.bowl_level, self.bowl_target, frames, bowl_seconds)
@@ -365,7 +336,7 @@ class Orchestra:
         for k in range(len(BOWL_FREQS)):
             self.bowl_weights[k] += (float(targets[k]) - self.bowl_weights[k]) * 0.2
         if self.bowl_level > 0.0008:
-            bt = (self.samples + np.arange(frames)) / deck.SAMPLE_RATE
+            bt = (self.samples + np.arange(frames)) / score.SAMPLE_RATE
             tone = np.zeros(frames, dtype=np.float64)
             for k, freq in enumerate(BOWL_FREQS):
                 tone += self.bowl_weights[k] * np.sin(2 * np.pi * freq * bt)
@@ -378,21 +349,15 @@ class Orchestra:
         self.stream.close()
 
 
-def _shown(name: str) -> str:
-    if name == "kick":
-        return "timpani"
-    return name
-
-
 def _bed_names(count: int) -> str:
     if count <= 0:
         return "silence"
-    return " + ".join(_shown(name) for name in BED[:count])
+    return " + ".join(BED[:count])
 
 
 def main() -> None:
     touch_names = {name for _, name in TOUCH}
-    if not touch_names <= set(deck.PARTS) or not set(BED) <= set(deck.PARTS):
+    if not touch_names <= set(score.PARTS) or not set(BED) <= set(score.PARTS):
         raise RuntimeError("Every part must come from the orchestra")
 
     i2c = board.I2C()
@@ -436,7 +401,7 @@ def main() -> None:
     servo.set_pulse_width_range(500, 2500)
     servo.angle = None
 
-    part_index = {name: i for i, name in enumerate(deck.PARTS)}
+    part_index = {name: i for i, name in enumerate(score.PARTS)}
     orchestra = Orchestra()
     held = {pad: False for pad, _ in TOUCH}
     bed_count = 0
@@ -450,13 +415,13 @@ def main() -> None:
     servo_high = False
     servo_step_at = 0.0
 
-    print(f"Table orchestra, house beat, {deck.BPM} BPM, A minor. One speaker.")
+    print(f"Table orchestra, Ode to Joy, {score.BPM} BPM, C major. One speaker.")
     print("Lean in. The Qwiic sensor adds the harmony, raises its volume, and only then moves the servo.")
     print(f"  far  <= {qwiic_floor:.0f}   silence")
     print(f"  near >= {qwiic_floor + QWIIC_SPAN:.0f}  {_bed_names(len(BED))}")
     print("Touch an object to add that line. Let go to fade it.")
     for pad, name in TOUCH:
-        print(f"  pad {pad}  {_shown(name)}")
+        print(f"  pad {pad}  {name}")
     print("Circle a hand over the bowl object. Closer is louder. It rings after you leave.")
 
     try:

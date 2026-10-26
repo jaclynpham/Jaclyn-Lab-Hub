@@ -136,6 +136,13 @@ pi@raspberrypi:~ $ ollama list
 
 \*\*\***Include a screenshot of `ollama list` showing your models.**\*\*\*
 
+```
+(venv) pi@raspberrypiJaclynPham:~/Jaclyn-Lab-Hub/Lab 5 $ ollama list
+NAME            ID              SIZE      MODIFIED     
+qwen3:0.6b      7df6b6e09427    522 MB    21 hours ago    
+qwen3.5:0.8b    de63045f2975    1.3 GB    22 hours ago   
+```
+
 
 ## Part B. 
 ### See: recognize people in real time with YOLO
@@ -160,6 +167,16 @@ Then press q to quit and run it again with a flag. Each one changes a single thi
 ```
 
 \*\*\***Include a short video or screenshots of your experiments with the person detection. Write down three situations where it did not see you, or saw a person who was not there, and what you think the cause was.**\*\*\*
+
+Videos, one per run: [python yolo_person.py](https://drive.google.com/file/d/1j3rzvHvo9w12DMcIP5N75kQF6smoCyfX/view?usp=sharing), [--conf 0.2](https://drive.google.com/file/d/1xMvdDxMdew7tEN3KO-O2nxv74GodczE4/view?usp=sharing), [--conf 0.7](https://drive.google.com/file/d/1U2Hl7BzJ2-ngTnDQUTCLcURmoBDSn31Y/view?usp=sharing), [--all](https://drive.google.com/file/d/1WHBjdcE508lVLul6Ie-uK_-_UqDcJGTK/view?usp=sharing). The terminal from the `--all` run is [this screenshot](https://drive.google.com/file/d/1BpD0w7pdwOuqYKLo1QwiEKBrF5bwPoGa/view?usp=sharing). All five files are in [this folder](https://drive.google.com/drive/folders/1Ge7GZhCu3CTC5fw4ZGxqu5W_0ptUzjuz?usp=sharing).
+
+Three misses:
+
+1. **It named a person on the desk.** In the `--all` log a person box shows up about 90 px tall at confidence 0.58, in the same frames as a potted plant. That is too short to be me standing at the camera. The pumpkin and the parts cabinet in `snap.jpg` are about that size, and the person class grabbed one of them. Cause: the default confidence lets a weak box through, and a round object on a table is close enough to a head.
+
+2. **It dropped me between frames.** The same log prints `0 object(s)` and then a person again (one line is a person at x=601, height=242 px, conf=0.68). I was still in the room. Cause: YOLO26n at `imgsz` 320 loses the body when the face fills the frame, as in `snap.jpg`, or when I shift a little. The box confidence falls under the cutoff for a frame and the reading becomes nobody.
+
+3. **`--all` saw objects that are not in the room.** The log names a chair (conf 0.72), a laptop (0.77–0.84), a tv (0.59), a mouse (0.47), and a potted plant (0.46–0.71). The desk has a pumpkin, a pink quilt, and a parts cabinet. Cause: the model only has the 80 COCO classes, so it assigns the nearest name. A cabinet becomes a chair or a laptop, and the quilt or a box becomes a tv.
 
 
 
@@ -188,6 +205,10 @@ Try the two main features of this script: 1) pinching for percentage control (th
 Consider how you might use this position based approach to create an interaction, and write how you might use it on either face, hand or body pose tracking.
 
 \*\*\***Include a screenshot or short video of the hand pose demo, and write how you might use face, hand or body pose tracking in your observant system.**\*\*\*
+
+[python hand_pose.py](https://drive.google.com/file/d/1EWZ6zRnlf08yB6YZmoRZ_QckmzSVaRzK/view?usp=sharing)
+
+The demo already treats a hand as 21 landmarks and an event as a rule over distances: thumb-to-index length sets the volume, and the Quiet Coyote distances mute it. I would use that the same way `interpret()` turns a box into words. Quiet Coyote is a rare pose, so it can mean "start watching" or "stop watching" without firing every time someone walks through the frame. The pinch distance can replace the hardcoded "close" cutoff (box taller than 60% of the frame) with a distance the person sets on purpose.
 
 
 ## Part D. 
@@ -222,9 +243,27 @@ A 0.8B model is slow and sometimes wrong. It will invent events that are not in 
 
 \*\*\***Ask Qwen three questions to answer. Paste the questions, the answers and how long each took. Try one of them with `qwen3:0.6b` and compare.**\*\*\*
 
-<details>
-  Q&A here
-</details>
+The earlier names of Roosevelt Island are Blackwell's Island and Welfare Island. Both models missed both names.
+
+**1. `qwen3.5:0.8b`, 11.1 s**
+
+Question: What were the two earlier names of Roosevelt Island?
+
+Answer: Roosevelt Island was once known as "The Island of the President" before it became famous for its Roosevelt Family home. It is also historically called "The Island of the President and Mrs. Roosevelt."
+
+**2. `qwen3:0.6b`, 8.9 s** (same question)
+
+Answer: The two earlier names of Roosevelt Island were "Newstead" and "Newport."
+
+The smaller model was faster by about 2 seconds and just as wrong. `qwen3.5:0.8b` invented a Roosevelt family house. `qwen3:0.6b` invented two place names. Neither said Blackwell's Island or Welfare Island.
+
+**3. `qwen3.5:0.8b` with `snap.jpg`, 32.4 s**
+
+Question: What is in this photo?
+
+Answer: A person with dark hair and glasses is taking a selfie, looking up at an exposed ceiling with white pipes and ductwork above.
+
+The person part is right: dark hair, glasses, a selfie. The rest is made up. In `snap.jpg` I am looking at the camera, and behind me are a pumpkin, a pink quilt, and a parts cabinet. There is no exposed ceiling. Looking at one photo took about three times as long as the text question. `qwen3:0.6b` cannot take an image, so only `qwen3.5:0.8b` could try this, and it still filled in a background that is not there.
 
 
 ## Part E. 

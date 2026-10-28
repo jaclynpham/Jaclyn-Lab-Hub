@@ -1,0 +1,65 @@
+17:21:25 1 person(s) at center/close
+17:21:31 1 person(s) at left/close
+17:21:32 1 person(s) at center/close
+17:21:33 1 person(s) at left/close
+17:21:33 1 person(s) at center/close
+17:21:36 nobody
+17:21:36 1 person(s) at center/close
+17:21:37 1 person(s) at left/close
+17:21:37 nobody
+17:21:37 1 person(s) at left/close
+17:21:38 nobody
+17:21:41 1 person(s) at left/close
+17:21:42 1 person(s) at center/close
+17:21:44 1 person(s) at right/close
+17:21:45 1 person(s) at center/close
+17:21:47 1 person(s) at left/close
+17:21:47 1 person(s) at center/close
+17:21:47 1 person(s) at left/close
+17:21:48 nobody
+17:21:48 1 person(s) at left/close
+17:21:50 1 person(s) at center/close
+17:21:51 1 person(s) at left/close
+17:21:51 1 person(s) at center/close
+17:21:56 2 person(s) at center/close, left/close
+17:21:56 1 person(s) at left/close
+17:21:57 nobody
+17:21:57 1 person(s) at left/far
+17:21:57 nobody
+17:21:59 1 person(s) at left/far
+17:21:59 1 person(s) at left/close
+17:22:00 1 person(s) at center/close
+17:22:01 nobody
+17:22:01 1 person(s) at right/close
+17:22:03 1 person(s) at right/far
+17:22:03 nobody
+17:22:03 1 person(s) at right/far
+17:22:04 1 person(s) at center/far
+17:22:04 2 person(s) at right/far, center/far
+17:22:04 1 person(s) at center/far
+17:22:04 nobody
+17:22:04 1 person(s) at right/far
+17:22:05 nobody
+17:22:05 1 person(s) at right/far
+17:22:05 nobody
+17:22:06 1 person(s) at right/far
+17:22:06 1 person(s) at right/close
+17:22:07 1 person(s) at center/close
+17:22:08 1 person(s) at left/close
+17:22:09 nobody
+17:22:14 1 person(s) at left/close
+17:22:14 1 person(s) at center/close
+17:22:15 1 person(s) at right/close
+17:22:15 1 person(s) at right/far
+17:22:15 nobody
+17:22:15 1 person(s) at right/far
+17:22:16 nobody
+17:22:16 1 person(s) at right/far
+17:22:16 nobody
+17:22:17 1 person(s) at right/far
+17:22:17 nobody
+17:22:17 1 person(s) at right/far
+17:22:17 nobody
+17:22:18 1 person(s) at right/far
+17:22:18 1 person(s) at right/close
+17:22:18 1 person(s) at center/close

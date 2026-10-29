@@ -21,10 +21,15 @@ PRINT_DPI = 300
 NO_DETECTIONS = "No detections recorded"
 INK = (28, 22, 16)
 HALO = (246, 241, 230)
+# Smaller than the earlier 8–10 pt. Labels are the lighter of the two.
+LABEL_PT = 6
+BODY_PT = 7
 
+# Light stroke, shipped with the lab so the Pi does not fall back to Courier.
 MONO_FONTS = (
-    "/System/Library/Fonts/Supplemental/Courier New.ttf",
-    "/System/Library/Fonts/Menlo.ttc",
+    Path(__file__).resolve().parent / "fonts" / "IBMPlexMono-Light.ttf",
+    "/Library/Fonts/SF-Mono-Light.otf",
+    "/usr/share/fonts/opentype/ibm-plex/IBMPlexMono-Light.otf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
     "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
     "/usr/share/fonts/truetype/freefont/FreeMono.ttf",
@@ -279,18 +284,18 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
     width, height = POSTCARD_WIDTH, POSTCARD_HEIGHT
     image = paper_background(width, height, seed, texture_bytes)
     draw = ImageDraw.Draw(image)
-    label = _font(_pt(8))
-    value = _font(_pt(10))
+    label = _font(_pt(LABEL_PT))
+    value = _font(_pt(BODY_PT))
     margin = 78
     y = 68
     _draw_text(draw, margin, y, "DATE", label)
-    y += _pt(8) + 6
+    y += _pt(LABEL_PT) + 4
     _draw_text(draw, margin, y, content["date"], value)
-    y += _pt(10) + 18
+    y += _pt(BODY_PT) + 14
     _draw_text(draw, margin, y, "OBSERVATION PERIOD", label)
-    y += _pt(8) + 6
+    y += _pt(LABEL_PT) + 4
     _draw_text(draw, margin, y, content["period"], value)
-    y += _pt(10) + 28
+    y += _pt(BODY_PT) + 22
     art_top = y
     art_box = (margin, art_top, width - margin, height - 64)
     art_w = art_box[2] - art_box[0]
@@ -332,7 +337,7 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
         if abs(angle) > 0.2:
             block = block.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
         art.paste(block, (int(piece["left"]), int(piece["top"])), block)
-    caption_font = _font(_pt(10))
+    caption_font = _font(_pt(BODY_PT))
     notes = [note for note in (speculations or []) if isinstance(note, dict)]
     occupied = []
     for piece in pieces:
@@ -352,16 +357,16 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
         block_w = max(piece["font"].getlength(line) for line in lines)
         block_h = max(step, len(lines) * step)
         description = _caption_text(piece["detection"], notes)
-        caption_lines = [_fmt_time(piece["detection"].get("timestamp"))] + _wrap(description, caption_font, 460)
-        cap_w = min(480, max(caption_font.getlength(line) for line in caption_lines) + 4)
-        cap_h = int(len(caption_lines) * (_pt(10) + 6))
+        caption_lines = [_fmt_time(piece["detection"].get("timestamp"))] + _wrap(description, caption_font, 280)
+        cap_w = min(300, max(caption_font.getlength(line) for line in caption_lines) + 4)
+        cap_h = int(len(caption_lines) * (_pt(BODY_PT) + 4))
         x, y_text = _place_caption(
             piece["left"], piece["top"], block_w, block_h, cap_w, cap_h, art_w, art_h, occupied,
         )
         cursor = y_text
         for line in caption_lines:
             _draw_text(art_draw, x, cursor, line, caption_font)
-            cursor += _pt(10) + 6
+            cursor += _pt(BODY_PT) + 4
         occupied.append((x, y_text, x + cap_w, y_text + cap_h))
     if content["message"]:
         _draw_text(art_draw, 8, 12, content["message"], caption_font)

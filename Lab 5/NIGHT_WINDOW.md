@@ -56,7 +56,7 @@ Repeated nearby boxes of the same class become one figure. The rule is: same cla
 
 ## Postcard
 
-The top left has `DATE` and `OBSERVATION PERIOD` in small monospace type, about 8–10 pt at 300 dpi. The rest of the sheet is colored ASCII of the masked objects. Beside each figure is its time and one short description. When Qwen answers, that line begins with `Qwen imagines:`. There is no confidence, coordinate, count, legend, or footer.
+The top left has `DATE` and `OBSERVATION PERIOD` in IBM Plex Mono Light, about 6–7 pt at 300 dpi. The rest of the sheet is colored ASCII of the masked objects. Beside each figure is its time and one short description. When Qwen answers, that line begins with `Qwen imagines:`. There is no confidence, coordinate, count, legend, or footer.
 
 Colors are `rgb(r, g, b)` with each channel chosen from 0–255. A color that would disappear into the paper is drawn again. Layout and color come from a seed derived from the session, unless you pass `--seed`. The same session data draws the same card. Text sits on the paper, with a one-pixel halo so it stays readable. It is not set in a box.
 

@@ -11,10 +11,10 @@ Get consent from everyone in the household before a camera run. Point the camera
 The default watch is 15 seconds, with a sample every 10 seconds. That is a test, not a night.
 
 ```bash
-python night_window.py observe --show --skip-qwen
+python night_window.py observe --headless
 ```
 
-`--show` opens a window (use VNC on the Pi). Press `q` or Ctrl-C to stop early. The postcard is still written from whatever was seen. Without a display, leave `--show` off.
+That does not open a camera window. `--show` is the only flag that does, and it needs VNC. Press `q` in that window, or Ctrl-C, to stop early. The postcard is still written from whatever was seen.
 
 The command prints the session folder. Inside it, the only file is `morning_postcard.png`.
 
@@ -40,7 +40,9 @@ python night_window.py observe --duration 60 --seed 7 --skip-qwen
 
 `--all` detects every COCO class, same idea as `yolo_person.py --all`. The default filter is person, bird, bus, car, and dog. `--gesture` looks for the Quiet Coyote pose from Part C. The timer and Ctrl-C work without it. If MediaPipe cannot start, the watch still runs on the timer.
 
-The model path defaults to `yolo26n_ncnn_model` from Part A. Camera index, confidence, and `imgsz` match the Part B/E scripts (`--camera`, `--conf`, `--imgsz`).
+The detection model defaults to `yolo26n_ncnn_model` from Part A. Camera index, confidence, and `imgsz` match the Part B/E scripts (`--camera`, `--conf`, `--imgsz`).
+
+The normal run does not open a window and does not load a second YOLO model. Each crop is isolated with OpenCV GrabCut. The detection model does not produce masks. A crop that still cannot be separated from its box is left off the card. `--seg-model` can point at a segmentation checkpoint, but the NCNN segmentation export is what Bus-errors on the Pi, so leave that flag off.
 
 ## What gets saved
 
@@ -50,17 +52,17 @@ Each session folder contains only:
 
 Crops are written to a temporary folder so the postcard can be drawn, then that folder is removed. There is no log, HTML page, or crop directory left behind.
 
-Repeated nearby boxes of the same class can be counted on the card as an approximate sighting. The rule is: same class, normalized centers within 0.18 of the frame, and no more than 3 sample intervals apart. That is proximity. It is not the same individual. Every box that fits is listed on the card. If the list is too long, the card says how many of the total it shows and spaces them across the watch. It does not invent extra detections.
+Repeated nearby boxes of the same class become one figure. The rule is: same class, normalized centers within 0.18 of the frame, and no more than 3 sample intervals apart. That is proximity. It is not the same individual. The card does not list every frame.
 
 ## Postcard
 
-The header has the date and the observation period. Colored ASCII is built from the crops: grayscale, resized with OpenCV, then a light-to-dark character ramp, with the row count adjusted for a monospace character. Factual chips (class, time, confidence, position) and any "Qwen imagines" notes can overlap that art. A panel under the art repeats the detections so the overlap cannot hide the record. Speculative sentences stay under their own heading.
+The top left has `DATE` and `OBSERVATION PERIOD` in small monospace type, about 8–10 pt at 300 dpi. The rest of the sheet is colored ASCII of the masked objects. Beside each figure is its time and one short description. When Qwen answers, that line begins with `Qwen imagines:`. There is no confidence, coordinate, count, legend, or footer.
 
-Colors are `rgb(r, g, b)` with each channel chosen from 0–255. A color that would disappear into the paper is drawn again. Layout and color come from a seed derived from the session, unless you pass `--seed`. The same session data draws the same card.
+Colors are `rgb(r, g, b)` with each channel chosen from 0–255. A color that would disappear into the paper is drawn again. Layout and color come from a seed derived from the session, unless you pass `--seed`. The same session data draws the same card. Text sits on the paper, with a one-pixel halo so it stays readable. It is not set in a box.
 
-If `poetic surveillance/paper texture .jpg` is present it is washed in as a faint paper background. If that file is missing, the card uses a generated paper field and says so in the terminal. Nothing is fetched from the network.
+If `poetic surveillance/paper texture .jpg` is present it is washed in faintly. If that file is missing, the card uses a generated paper field and says so in the terminal. Nothing is fetched from the network.
 
-If the watch sees nothing, the card still finishes and says "No detections recorded."
+If nothing can be drawn, the card still finishes and says "No detections recorded".
 
 ## Tests
 
@@ -70,4 +72,4 @@ python -m unittest discover -s tests -q
 
 ## Limits
 
-YOLO can miss an object, mislabel it, or mark something that is not there. Trust the class, time, and confidence on the card as the detector's record only. Qwen can invent visual details; those sentences are labeled "Qwen imagines" or "speculative note." A YOLO box is not a silhouette, so a crop and its ASCII include whatever background was inside the rectangle. The watch was not timed on a Pi camera in this checkout unless you run it there yourself.
+YOLO can miss an object or mislabel it. Qwen's sentence is imagination, marked `Qwen imagines:`, and it is not a verified observation. A detection box is not a silhouette. The ASCII is only the masked foreground. The watch was not timed on a Pi camera in this checkout unless you run it there yourself. Ultralytics is not installed in this Mac checkout, so the segmentation path here is OpenCV GrabCut unless `yolo26n-seg_ncnn_model` is present.

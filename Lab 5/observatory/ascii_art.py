@@ -15,12 +15,13 @@ DENSITY_RAMP = (
 )
 
 
-def image_to_ascii(image, cols=48, char_aspect=CHAR_ASPECT):
+def image_to_ascii(image, cols=48, char_aspect=CHAR_ASPECT, mask=None):
     """Map an OpenCV image to a character grid.
 
     `image` is grayscale or BGR, as cv2.imread and the camera return it.
     `cols` is the width of the grid. The height follows the picture's aspect
     ratio times `char_aspect` (character width divided by character height).
+    Where `mask` is background, the cell is a space so the paper shows through.
     """
     if image is None or getattr(image, "size", 0) == 0:
         return ""
@@ -36,11 +37,19 @@ def image_to_ascii(image, cols=48, char_aspect=CHAR_ASPECT):
     cols = max(1, int(cols))
     rows = max(1, int(round(cols * (height / float(width)) * float(char_aspect))))
     small = cv2.resize(gray, (cols, rows), interpolation=cv2.INTER_AREA)
+    foreground = None
+    if mask is not None and getattr(mask, "size", 0) != 0:
+        gray_mask = mask if mask.ndim == 2 else cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+        resized = cv2.resize(gray_mask, (cols, rows), interpolation=cv2.INTER_AREA)
+        foreground = resized >= 128
     last = len(DENSITY_RAMP) - 1
     lines = []
-    for row in small:
+    for y, row in enumerate(small):
         chars = []
-        for pixel in row:
+        for x, pixel in enumerate(row):
+            if foreground is not None and not bool(foreground[y, x]):
+                chars.append(" ")
+                continue
             brightness = int(pixel)
             index = (255 - brightness) * last // 255
             chars.append(DENSITY_RAMP[index])

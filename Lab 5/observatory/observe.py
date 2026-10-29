@@ -17,9 +17,10 @@ import cv2
 from observatory.coco import class_names_from_args, resolve_class_ids
 from observatory.gesture import is_quiet_coyote, landmarks_from, try_hand_detector
 from observatory.logio import make_detection
-from observatory.postcard import load_texture_bytes, retain_only, write_postcard
+from observatory.postcard import load_texture_bytes, retain_only, select_sightings, write_postcard
 from observatory.poster import seed_from_session
 from observatory.qwen_notes import DEFAULT_MODEL, collect_notes
+from observatory.segment import crop_window, open_segmenter
 
 PAD_FRAC = 0.10
 PRIVACY_WARNING = (
@@ -79,7 +80,8 @@ def build_predictor(model_path, conf, imgsz, class_names):
 
     def predict(frame):
         result = model.predict(
-            frame, imgsz=imgsz, conf=conf, classes=class_ids, verbose=False
+            frame, imgsz=imgsz, conf=conf, classes=class_ids,
+            show=False, save=False, verbose=False,
         )[0]
         return boxes_from_result(result, model.names)
 
@@ -104,17 +106,8 @@ def boxes_from_result(result, names):
 
 
 def padded_crop(frame, xyxy, pad_frac=PAD_FRAC):
-    height, width = frame.shape[:2]
-    x1, y1, x2, y2 = [float(value) for value in xyxy]
-    pad_x = (x2 - x1) * pad_frac
-    pad_y = (y2 - y1) * pad_frac
-    left = max(0, int(x1 - pad_x))
-    top = max(0, int(y1 - pad_y))
-    right = min(width, int(x2 + pad_x + 0.999))
-    bottom = min(height, int(y2 + pad_y + 0.999))
-    if right - left < 2 or bottom - top < 2:
-        return None
-    return frame[top:bottom, left:right]
+    crop, _bounds = crop_window(frame, xyxy, pad_frac)
+    return crop
 
 
 def create_session_dir(parent):
@@ -151,21 +144,21 @@ def _plural(count, word):
     return f"{count} {word}" if count == 1 else f"{count} {word}s"
 
 
-def _save_crop(frame, xyxy, work_dir, timestamp, class_name, sample_index, det_index):
-    crop = padded_crop(frame, xyxy)
-    if crop is None:
-        return None
+def _save_isolated(crop, mask, work_dir, timestamp, class_name, sample_index, det_index):
     safe = re.sub(r"[^a-z0-9]+", "-", class_name.lower()).strip("-") or "object"
     try:
         stamp = datetime.datetime.fromisoformat(timestamp).strftime("%Y%m%d-%H%M%S")
     except ValueError:
         stamp = "time"
-    filename = f"{stamp}-s{sample_index}-{safe}-{det_index}.jpg"
-    path = Path(work_dir) / filename
-    if not cv2.imwrite(str(path), crop):
-        print(f"could not save {path}", flush=True)
-        return None
-    return str(path)
+    stem = f"{stamp}-s{sample_index}-{safe}-{det_index}"
+    crop_path = Path(work_dir) / f"{stem}.png"
+    mask_path = Path(work_dir) / f"{stem}-mask.png"
+    shown = crop.copy()
+    shown[mask < 128] = 255
+    if not cv2.imwrite(str(crop_path), shown) or not cv2.imwrite(str(mask_path), mask):
+        print(f"could not save {crop_path}", flush=True)
+        return None, None
+    return str(crop_path), str(mask_path)
 
 
 def _show_frame(frame, records, seconds_left):
@@ -182,7 +175,7 @@ def _show_frame(frame, records, seconds_left):
     cv2.imshow("Night Window", view)
 
 
-def _sample_once(camera, predictor, work_dir, detections, samples, counts, meta, show, end, clock, detector, gesture_after):
+def _sample_once(camera, predictor, segmenter, work_dir, detections, samples, counts, meta, show, end, clock, detector, gesture_after):
     timestamp = datetime.datetime.now().isoformat(timespec="seconds")
     try:
         ok, frame = camera.read()
@@ -216,14 +209,18 @@ def _sample_once(camera, predictor, work_dir, detections, samples, counts, meta,
         samples.append({"timestamp": timestamp, "detections": 0, "frame_ok": True})
         counts["samples"] += 1
         return
+    segmenter.begin_frame(frame)
     records = []
     for index, item in enumerate(found):
-        crop_path = _save_crop(
-            frame, item["xyxy"], work_dir, timestamp, item["class_name"], counts["samples"], index,
-        )
+        crop, mask = segmenter.isolate(frame, item["xyxy"], item["class_name"])
         record = make_detection(item, frame.shape, None, timestamp)
-        if crop_path:
-            record["crop_path"] = crop_path
+        if crop is not None and mask is not None:
+            crop_path, mask_path = _save_isolated(
+                crop, mask, work_dir, timestamp, item["class_name"], counts["samples"], index,
+            )
+            if crop_path and mask_path:
+                record["crop_path"] = crop_path
+                record["mask_path"] = mask_path
         records.append(record)
         detections.append(record)
     samples.append({"timestamp": timestamp, "detections": len(records), "frame_ok": True})
@@ -255,6 +252,7 @@ def run_observe(args, camera=None, predictor=None, clock=None, sleeper=None):
     # does not leave the webcam running.
     if predictor is None:
         predictor = build_predictor(args.model, args.conf, args.imgsz, class_names)
+    segmenter = open_segmenter(getattr(args, "seg_model", None), class_names, args.conf, args.imgsz)
     if camera is None:
         camera = open_camera(args.camera)
 
@@ -313,10 +311,13 @@ def run_observe(args, camera=None, predictor=None, clock=None, sleeper=None):
         try:
             camera.release()
         finally:
-            try:
-                cv2.destroyAllWindows()
-            except Exception:
-                pass
+            # HighGUI is what pops a window and what bus-errors on the Pi.
+            # Leave it alone unless this run actually opened one.
+            if show:
+                try:
+                    cv2.destroyAllWindows()
+                except Exception:
+                    pass
 
     def cleanup_work():
         nonlocal cleaned
@@ -345,7 +346,7 @@ def run_observe(args, camera=None, predictor=None, clock=None, sleeper=None):
                     sleeper(min(next_sample - now, end - now))
                     continue
                 _sample_once(
-                    camera, predictor, work.name, detections, samples, counts, meta,
+                    camera, predictor, segmenter, work.name, detections, samples, counts, meta,
                     show, end, clock, detector, gesture_after,
                 )
                 next_sample = now + args.interval
@@ -383,10 +384,16 @@ def _publish_postcard(args, session_dir, meta, detections, samples, counts, reas
     )
     if counts["detections"] == 0:
         print("No detections recorded.", flush=True)
+    reps = select_sightings(detections, meta.get("interval_s"))
+    print(
+        f"postcard figures: {len(reps)} sightings from {counts['detections']} detections. "
+        "Nearby repeats are grouped. That is not the same individual.",
+        flush=True,
+    )
     skip = bool(getattr(args, "skip_qwen", False))
     cap = int(getattr(args, "qwen_cap", 3))
     model = getattr(args, "qwen_model", None) or DEFAULT_MODEL
-    notes, status = collect_notes(detections, skip=skip, cap=cap, model=model)
+    notes, status = collect_notes(reps, skip=skip, cap=cap, model=model)
     seed = getattr(args, "seed", None)
     if seed is None:
         seed = seed_from_session(meta)

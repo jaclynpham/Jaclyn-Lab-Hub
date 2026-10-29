@@ -141,6 +141,7 @@ def group_sightings(detections, interval_s, max_dist=SIGHTING_MAX_DIST, max_gaps
                 "cy": float(cy) if cy is not None else 0.5,
                 "n": 1,
                 "last": moment,
+                "members": [detection],
             })
             continue
         count = best["n"]
@@ -148,4 +149,5 @@ def group_sightings(detections, interval_s, max_dist=SIGHTING_MAX_DIST, max_gaps
         best["cy"] = (best["cy"] * count + float(cy)) / (count + 1)
         best["n"] = count + 1
         best["last"] = moment
+        best["members"].append(detection)
     return groups

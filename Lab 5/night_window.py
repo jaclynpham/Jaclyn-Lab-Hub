@@ -5,8 +5,8 @@ writes one postcard, morning_postcard.png: detector observations, ASCII from
 the crops, and optional speculative notes from local Qwen. Part 1 scripts are
 unchanged.
 
-    python night_window.py observe
-    python night_window.py observe --duration 30 --interval 10 --show --skip-qwen
+    python night_window.py observe --headless
+    python night_window.py observe --duration 30 --interval 10 --headless
     python night_window.py observe --duration 28800 --interval 20 --qwen-cap 3
     python night_window.py observe --all
     python night_window.py observe --classes bird,car,bus
@@ -15,8 +15,16 @@ Default duration is 15 seconds so a forgotten flag cannot watch all night.
 Pass --duration for a longer observation. Default interval is 10 seconds.
 Ctrl-C stops early and still writes the postcard. Quiet Coyote (--gesture) is optional.
 """
-import argparse
+import os
 import sys
+
+# Headless unless a window was requested. Qt on the Pi bus-errors if it
+# starts with no display, and it can also flash a camera window.
+if "--show" not in sys.argv or "--headless" in sys.argv:
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    os.environ.setdefault("MPLBACKEND", "Agg")
+
+import argparse
 
 from observatory.coco import WINDOW_CLASSES, class_names_from_args
 from observatory.observe import run_observe
@@ -33,13 +41,17 @@ def build_parser():
     observe.add_argument("--interval", type=float, default=10,
                          help="seconds between samples (default 10; the lab suggests 5 to 30)")
     observe.add_argument("--camera", type=int, default=0, help="camera index")
-    observe.add_argument("--model", default="yolo26n_ncnn_model", help="YOLO26 nano NCNN model path")
+    observe.add_argument("--model", default="yolo26n_ncnn_model", help="YOLO26 nano NCNN detection model path")
+    observe.add_argument("--seg-model", default=None,
+                         help="YOLO26 nano segmentation model (default: yolo26n-seg_ncnn_model if present)")
     observe.add_argument("--conf", type=float, default=0.4, help="minimum confidence, 0 to 1")
     observe.add_argument("--imgsz", type=int, default=320, help="frame size the model looks at")
     observe.add_argument("--classes", default=",".join(WINDOW_CLASSES),
                          help="comma-separated COCO names (default: person,bird,bus,car,dog)")
     observe.add_argument("--all", action="store_true", help="detect all 80 COCO classes, not the window set")
     observe.add_argument("--output", default="observations", help="parent directory for this session")
+    observe.add_argument("--headless", action="store_true",
+                         help="no camera window (this is already the default)")
     observe.add_argument("--show", action="store_true", help="open a window (needs a display); q stops early")
     observe.add_argument("--gesture", action="store_true",
                          help="optional Quiet Coyote start/stop; the timer works without it")
@@ -66,9 +78,13 @@ def cmd_observe(args):
     class_names_from_args(args)
     if args.duration <= 0 or args.interval <= 0:
         raise SystemExit("Duration and interval must be greater than 0.")
-    if args.show and sys.platform.startswith("linux") and not __import__("os").environ.get("DISPLAY"):
+    if getattr(args, "headless", False):
+        args.show = False
+    if args.show and sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         print("no display found (plain ssh?): running without the window. Use VNC to see it.", flush=True)
         args.show = False
+    if not args.show:
+        print("Headless: no camera window.", flush=True)
     run_observe(args)
     return 0
 

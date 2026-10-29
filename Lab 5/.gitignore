@@ -15,9 +15,6 @@ runs/
 # Part H: the snapshots overnight.py saves. Private, and deleted after the demo anyway.
 snaps/
 
-# Night Window Observatory sessions. Crops are private; delete them after the demo.
-observations/
-
 # Scripts started with nohup write their output here
 nohup.out
 

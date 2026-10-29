@@ -28,6 +28,13 @@ from observatory.logio import (
     write_json,
 )
 from observatory.observe import build_predictor, padded_crop, run_observe
+from observatory.segment import (
+    SEG_CANDIDATES,
+    grabcut_mask,
+    instances_from_result,
+    mask_is_isolated,
+    resolve_seg_path,
+)
 from observatory.postcard import (
     NO_DETECTIONS,
     POSTCARD_HEIGHT,
@@ -128,6 +135,13 @@ class AsciiTests(unittest.TestCase):
         self.assertEqual(len(squared.splitlines()), max(1, int(round(40 * CHAR_ASPECT))))
         self.assertTrue(all(len(line) == 40 for line in squared.splitlines()))
 
+        masked = np.zeros((40, 80), np.uint8)
+        mask = np.zeros((40, 80), np.uint8)
+        mask[:, 20:60] = 255
+        masked_art = image_to_ascii(masked, cols=80, char_aspect=1, mask=mask)
+        self.assertTrue(all(line[:20] == " " * 20 and line[60:] == " " * 20 for line in masked_art.splitlines()))
+        self.assertTrue(all(set(line[20:60]) == {DENSITY_RAMP[-1]} for line in masked_art.splitlines()))
+
     def test_sample_images_keep_aspect(self):
         for name in ("bus.jpg", "snap.jpg", "predict/bus.jpg"):
             path = LAB / name
@@ -215,6 +229,7 @@ class LogTests(unittest.TestCase):
             _det("bird", "2026-10-28T01:00:10", 0.90, 0.80),
         ]
         self.assertEqual(len(group_sightings(near, 10)), 1)
+        self.assertEqual(len(group_sightings(near, 10)[0]["members"]), 2)
         self.assertEqual(len(group_sightings(far, 10)), 2)
         self.assertEqual(len(near), 2)
 
@@ -234,52 +249,65 @@ def _fixture_meta():
     }
 
 
+def _ellipse_mask(shape):
+    mask = np.zeros(shape[:2], np.uint8)
+    height, width = shape[:2]
+    cv2.ellipse(
+        mask, (width // 2, height // 2), (max(4, int(width * 0.28)), max(4, int(height * 0.34))),
+        0, 0, 360, 255, -1,
+    )
+    return mask
+
+
 class PostcardTests(unittest.TestCase):
-    def test_same_seed_same_pixels_and_facts_stay_separate(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            crop = Path(tmp) / "x.jpg"
-            image = np.full((60, 80, 3), 255, np.uint8)
-            image[10:50, 10:40] = (0, 0, 0)
-            cv2.imwrite(str(crop), image)
-            nasty = '"><script>alert(\'x\')</script>'
-            detection = {
-                "timestamp": "2026-10-28T02:11:00",
-                "class_name": nasty,
-                "class_id": 0,
-                "confidence": 0.5,
-                "bbox": [10, 10, 40, 50],
-                "position": {"cx": 0.2, "cy": 0.3, "horizontal": "left", "vertical": "upper"},
-                "crop_path": str(crop),
-                "frame_width": 80,
-                "frame_height": 60,
-            }
-            meta = _fixture_meta()
-            notes = [{
-                "timestamp": detection["timestamp"],
-                "class_name": nasty,
-                "text": "A streetlight considers the hour.",
-                "model": "qwen3.5:0.8b",
-            }]
-            content = postcard_content(meta, [detection], [], notes, note_status="fresh")
-            self.assertIn(nasty, content["rows"][0])
-            self.assertIn("conf 0.50", content["rows"][0])
-            self.assertIn("2:11 AM", content["rows"][0])
-            self.assertTrue(content["notes"][1].startswith("Qwen imagines"))
-            self.assertIn("speculative note", content["notes"][1])
-            self.assertIn("A streetlight considers the hour.", content["notes"][1])
-            self.assertNotIn("A streetlight", content["rows"][0])
-            first = render_postcard_image(meta, [detection], [], notes, seed=7, texture_bytes=None)
-            second = render_postcard_image(meta, [detection], [], notes, seed=7, texture_bytes=None)
-            other = render_postcard_image(meta, [detection], [], notes, seed=8, texture_bytes=None)
-            self.assertEqual(first.size, (POSTCARD_WIDTH, POSTCARD_HEIGHT))
-            self.assertEqual(first.tobytes(), second.tobytes())
-            self.assertNotEqual(first.tobytes(), other.tobytes())
-            blank = np.full_like(image, 255)
-            blank_path = Path(tmp) / "blank.jpg"
-            cv2.imwrite(str(blank_path), blank)
-            blank_detection = dict(detection, crop_path=str(blank_path))
-            blank_card = render_postcard_image(meta, [blank_detection], [], notes, seed=7, texture_bytes=None)
-            self.assertNotEqual(first.tobytes(), blank_card.tobytes())
+    def test_captions_are_sparse_and_the_card_is_deterministic(self):
+        image = np.full((160, 200, 3), 245, np.uint8)
+        cv2.circle(image, (100, 80), 46, (15, 15, 15), -1)
+        mask = _ellipse_mask(image.shape)
+        self.assertTrue(mask_is_isolated(mask))
+        nasty = "person"
+        detection = {
+            "timestamp": "2026-10-28T02:11:00",
+            "class_name": nasty,
+            "class_id": 0,
+            "confidence": 0.5,
+            "bbox": [40, 20, 160, 140],
+            "position": {"cx": 0.2, "cy": 0.3, "horizontal": "left", "vertical": "upper"},
+            "crop_image": image,
+            "mask_image": mask,
+            "frame_width": 640,
+            "frame_height": 480,
+        }
+        repeat = dict(detection, timestamp="2026-10-28T02:11:10", confidence=0.42)
+        louder = dict(detection, confidence=0.91)
+        meta = _fixture_meta()
+        notes = [{
+            "timestamp": louder["timestamp"],
+            "class_name": nasty,
+            "text": "A streetlight considers the hour.",
+            "model": "qwen3.5:0.8b",
+        }]
+        content = postcard_content(meta, [detection, repeat, louder], [], notes, note_status="fresh")
+        self.assertEqual(len(content["captions"]), 1)
+        self.assertEqual(content["captions"][0]["time"], "2:11 AM")
+        self.assertEqual(content["captions"][0]["description"], "Qwen imagines: A streetlight considers the hour.")
+        self.assertNotIn("0.91", content["captions"][0]["description"])
+        self.assertNotIn("conf", content["captions"][0]["description"])
+        self.assertEqual(content["message"], "")
+        blob = content["date"] + content["period"] + content["captions"][0]["description"]
+        self.assertNotIn("OBSERVATIONS", blob)
+        self.assertNotIn("Approximate", blob)
+        first = render_postcard_image(meta, [detection, repeat, louder], [], notes, seed=7, texture_bytes=None)
+        second = render_postcard_image(meta, [detection, repeat, louder], [], notes, seed=7, texture_bytes=None)
+        other = render_postcard_image(meta, [detection, repeat, louder], [], notes, seed=8, texture_bytes=None)
+        self.assertEqual(first.size, (POSTCARD_WIDTH, POSTCARD_HEIGHT))
+        self.assertEqual(first.tobytes(), second.tobytes())
+        self.assertNotEqual(first.tobytes(), other.tobytes())
+        unmasked = dict(detection, mask_image=np.full(image.shape[:2], 255, np.uint8))
+        bare = render_postcard_image(meta, [unmasked], [], [], seed=7, texture_bytes=None)
+        empty = render_postcard_image(meta, [], [], [], seed=7, texture_bytes=None)
+        self.assertEqual(bare.tobytes(), empty.tobytes())
+        self.assertNotEqual(first.tobytes(), empty.tobytes())
 
     def test_zero_detections_and_texture(self):
         meta = _fixture_meta()
@@ -288,15 +316,12 @@ class PostcardTests(unittest.TestCase):
             {"timestamp": "2026-10-29T06:10:00", "detections": 0, "frame_ok": True},
         ]
         content = postcard_content(meta, [], samples, [], note_status="no-crops")
-        self.assertIn(NO_DETECTIONS, content["summary"])
-        self.assertEqual(NO_DETECTIONS, "No detections recorded.")
-        self.assertIn("logged none", content["summary"])
+        self.assertEqual(content["message"], NO_DETECTIONS)
+        self.assertEqual(NO_DETECTIONS, "No detections recorded")
         self.assertEqual(content["date"], "10/28/2026")
         self.assertIn("11:05 PM", content["period"])
         self.assertIn("6:10 AM", content["period"])
-        self.assertEqual(content["rows"], [])
-        self.assertNotIn("Approximate sightings", content["sighting"])
-        self.assertIn("No speculative notes were written.", content["notes"][0])
+        self.assertEqual(content["captions"], [])
         quiet = render_postcard_image(meta, [], samples, [], seed=1, texture_bytes=None, note_status="no-crops")
         self.assertEqual(quiet.size, (POSTCARD_WIDTH, POSTCARD_HEIGHT))
         texture = find_texture(None)
@@ -310,9 +335,10 @@ class PostcardTests(unittest.TestCase):
         self.assertEqual(textured.size, quiet.size)
         self.assertNotEqual(textured.tobytes(), quiet.tobytes())
 
-    def test_bus_crop_changes_the_card(self):
+    def test_mask_changes_the_card_and_a_full_box_does_not(self):
         bus = cv2.imread(str(LAB / "bus.jpg"))
         self.assertIsNotNone(bus)
+        mask = _ellipse_mask(bus.shape)
         detection = {
             "timestamp": "2026-10-28T01:15:00",
             "class_name": "bus",
@@ -321,6 +347,7 @@ class PostcardTests(unittest.TestCase):
             "bbox": [20, 30, 400, 280],
             "position": {"cx": 0.5, "cy": 0.5, "horizontal": "center", "vertical": "middle"},
             "crop_image": bus,
+            "mask_image": mask,
             "frame_width": 640,
             "frame_height": 480,
         }
@@ -334,14 +361,15 @@ class PostcardTests(unittest.TestCase):
             "all_classes": False,
         }
         content = postcard_content(meta, [detection], [], [], note_status="skipped")
-        self.assertIn("bus", content["rows"][0])
-        self.assertIn("0.91", content["rows"][0])
-        self.assertIn("center", content["rows"][0])
-        self.assertIn("1:15 AM", content["rows"][0])
-        self.assertEqual(content["notes"], ["Speculative notes were not requested."])
-        self.assertIn("1 detection (1 bus).", content["summary"])
+        self.assertEqual(content["captions"][0]["description"], "bus")
+        self.assertEqual(content["captions"][0]["time"], "1:15 AM")
+        self.assertNotIn("0.91", content["captions"][0]["description"])
         card = render_postcard_image(meta, [detection], [], [], seed=11, texture_bytes=None, note_status="skipped")
+        whole = dict(detection)
+        whole.pop("mask_image")
+        untouched = render_postcard_image(meta, [whole], [], [], seed=11, texture_bytes=None, note_status="skipped")
         empty = render_postcard_image(meta, [], [], [], seed=11, texture_bytes=None, note_status="skipped")
+        self.assertEqual(untouched.tobytes(), empty.tobytes())
         self.assertNotEqual(card.tobytes(), empty.tobytes())
         with tempfile.TemporaryDirectory() as tmp:
             path = write_postcard(
@@ -353,6 +381,28 @@ class PostcardTests(unittest.TestCase):
             with Image.open(path) as saved:
                 self.assertEqual(saved.size, (POSTCARD_WIDTH, POSTCARD_HEIGHT))
                 self.assertEqual(saved.format, "PNG")
+
+
+class SegmentTests(unittest.TestCase):
+    def test_detection_boxes_are_not_masks_and_grabcut_keeps_a_circle(self):
+        self.assertNotIn("yolo26n_ncnn_model", SEG_CANDIDATES)
+        self.assertIsNone(resolve_seg_path("no/such/yolo26n-seg_ncnn_model"))
+
+        class BoxesOnly:
+            masks = None
+            boxes = object()
+            names = {0: "person"}
+
+        self.assertEqual(instances_from_result(BoxesOnly()), [])
+        flat = np.full((120, 120, 3), 180, np.uint8)
+        self.assertFalse(mask_is_isolated(grabcut_mask(flat)))
+        self.assertFalse(mask_is_isolated(np.full((80, 80), 255, np.uint8)))
+        circle = np.full((180, 180, 3), 235, np.uint8)
+        cv2.circle(circle, (90, 90), 48, (20, 30, 40), -1)
+        isolated = grabcut_mask(circle)
+        self.assertTrue(mask_is_isolated(isolated))
+        self.assertLess(int(isolated[4, 4]), 128)
+        self.assertGreater(int(isolated[90, 90]), 128)
 
 
 class QwenTests(unittest.TestCase):
@@ -511,6 +561,8 @@ class ObserveTests(unittest.TestCase):
         default = parser.parse_args(["observe"])
         self.assertEqual(default.duration, 15)
         self.assertEqual(default.interval, 10)
+        self.assertFalse(default.show)
+        self.assertTrue(parser.parse_args(["observe", "--headless"]).headless)
         self.assertEqual(
             class_names_from_args(default),
             ["person", "bird", "bus", "car", "dog"],

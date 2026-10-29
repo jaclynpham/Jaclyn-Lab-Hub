@@ -560,7 +560,7 @@ class ObserveTests(unittest.TestCase):
         parser = build_parser()
         default = parser.parse_args(["observe"])
         self.assertEqual(default.duration, 15)
-        self.assertEqual(default.interval, 10)
+        self.assertEqual(default.interval, 2)
         self.assertFalse(default.show)
         self.assertTrue(parser.parse_args(["observe", "--headless"]).headless)
         self.assertEqual(

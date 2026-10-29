@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from observatory.ascii_art import CHAR_ASPECT, image_to_ascii
-from observatory.logio import group_sightings, parse_timestamp
+from observatory.logio import group_sightings, parse_timestamp, spread_indices
 from observatory.poster import find_texture, plan_layout, place_piece
 from observatory.segment import mask_is_isolated
 
@@ -21,9 +21,10 @@ PRINT_DPI = 300
 NO_DETECTIONS = "No detections recorded"
 INK = (28, 22, 16)
 HALO = (246, 241, 230)
-# Smaller than the earlier 8–10 pt. Labels are the lighter of the two.
+# Header stays a step larger than the notes beside each figure.
 LABEL_PT = 6
 BODY_PT = 7
+CAPTION_PT = 5
 
 # Light stroke, shipped with the lab so the Pi does not fall back to Courier.
 MONO_FONTS = (
@@ -96,16 +97,66 @@ def _usable(detection):
     return _crop_array(detection) is not None and mask_is_isolated(_mask_array(detection))
 
 
+# How many frames of one nearby repeat are drawn on top of each other.
+LAYER_CAP = 6
+LAYER_TOTAL = 18
+
+
 def select_sightings(detections, interval_s):
-    """One drawable crop per nearby repeat. Proximity is not identity."""
-    chosen = []
+    """One caption per nearby repeat. Proximity is not identity."""
+    return [item["anchor"] for item in _layer_groups(detections, interval_s)]
+
+
+def layered_drawings(detections, interval_s):
+    """Several frames from each nearby group, stacked instead of discarded."""
+    drawings = []
+    for group_index, item in enumerate(_layer_groups(detections, interval_s)):
+        members = item["members"]
+        indexes = spread_indices(len(members), item["per"])
+        best_index = members.index(item["anchor"])
+        if best_index not in indexes:
+            indexes[-1] = best_index
+        indexes = sorted(set(indexes))
+        for slot, index in enumerate(indexes):
+            drawings.append({
+                "detection": members[index],
+                "group": group_index,
+                "slot": slot,
+                "count": len(indexes),
+                "caption": members[index] is item["anchor"],
+                "anchor": item["anchor"],
+            })
+    return drawings
+
+
+def _layer_groups(detections, interval_s):
+    grouped = []
     for group in group_sightings(detections, interval_s):
         members = [item for item in group.get("members") or [] if _usable(item)]
-        if not members:
-            continue
+        if members:
+            grouped.append(members)
+    if not grouped:
+        return []
+    per = LAYER_CAP
+    while per > 1 and len(grouped) * per > LAYER_TOTAL:
+        per -= 1
+    layers = []
+    for members in grouped:
         best = max(members, key=lambda item: float(item.get("confidence") or 0))
-        chosen.append(best)
-    return chosen
+        layers.append({"members": members, "anchor": best, "per": per})
+    return layers
+
+
+def _shift_ink(color, slot):
+    if slot == 0:
+        return color
+    red, green, blue = color
+    turn = slot % 3
+    if turn == 1:
+        return ((red + 72) % 256, green, (blue + 36) % 256)
+    if turn == 2:
+        return (red, (green + 80) % 256, (blue + 28) % 256)
+    return ((red + 36) % 256, (green + 36) % 256, blue)
 
 
 def _caption_text(detection, notes):
@@ -302,17 +353,33 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
     art_h = art_box[3] - art_box[1]
     art = Image.new("RGBA", (max(art_w, 1), max(art_h, 1)), (0, 0, 0, 0))
     art_draw = ImageDraw.Draw(art)
-    sightings = select_sightings(detections, (meta or {}).get("interval_s"))
-    layout = plan_layout(sightings, seed)
+    drawings = layered_drawings(detections, (meta or {}).get("interval_s"))
+    anchors = []
+    seen_groups = set()
+    for item in drawings:
+        if item["group"] in seen_groups:
+            continue
+        seen_groups.add(item["group"])
+        anchors.append(item["anchor"])
+    layout = plan_layout(anchors, seed)
+    plans = {index: plan for index, plan in enumerate(layout)}
     pieces = []
-    for detection, plan in zip(sightings, layout):
+    for item in drawings:
+        detection = item["detection"]
+        plan = plans[item["group"]]
         scaled = dict(plan)
-        scaled["font_px"] = max(18, int(plan["font_px"] * 2.4))
+        scale = 0.78 + 0.08 * item["slot"]
+        scaled["font_px"] = max(16, int(plan["font_px"] * 2.4 * scale))
         art_text = _ascii_block(detection, scaled["cols"])
         if not art_text:
             continue
         scaled["cols"] = max(len(line) for line in art_text.splitlines())
         font_px, left, top = place_piece(scaled, art_text, stage_w=art_w, stage_h=art_h)
+        nudge = item["slot"] - (item["count"] - 1) / 2.0
+        left = int(left + nudge * 46)
+        top = int(top + nudge * 28)
+        left = max(0, min(left, max(0, art_w - 48)))
+        top = max(0, min(top, max(0, art_h - 48)))
         pieces.append({
             "detection": detection,
             "plan": plan,
@@ -321,9 +388,11 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
             "font_px": font_px,
             "left": left,
             "top": top,
-            "color": _parse_rgb(plan["color"]),
+            "color": _shift_ink(_parse_rgb(plan["color"]), item["slot"]),
+            "slot": item["slot"],
+            "caption": item["caption"],
         })
-    for piece in sorted(pieces, key=lambda item: item["plan"]["z"]):
+    for piece in sorted(pieces, key=lambda item: (item["slot"], item["plan"]["z"])):
         lines = piece["art"].splitlines()
         advance = piece["font"].getlength("0") or piece["font_px"] * CHAR_ASPECT
         step = max(1, int(round(advance / CHAR_ASPECT)))
@@ -337,7 +406,7 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
         if abs(angle) > 0.2:
             block = block.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True)
         art.paste(block, (int(piece["left"]), int(piece["top"])), block)
-    caption_font = _font(_pt(BODY_PT))
+    caption_font = _font(_pt(CAPTION_PT))
     notes = [note for note in (speculations or []) if isinstance(note, dict)]
     occupied = []
     for piece in pieces:
@@ -352,21 +421,23 @@ def render_postcard_image(meta, detections, samples, speculations, seed,
         )
         occupied.append(piece["block"])
     for piece in pieces:
+        if not piece["caption"]:
+            continue
         lines = piece["art"].splitlines()
         step = piece["step"]
         block_w = max(piece["font"].getlength(line) for line in lines)
         block_h = max(step, len(lines) * step)
         description = _caption_text(piece["detection"], notes)
-        caption_lines = [_fmt_time(piece["detection"].get("timestamp"))] + _wrap(description, caption_font, 280)
-        cap_w = min(300, max(caption_font.getlength(line) for line in caption_lines) + 4)
-        cap_h = int(len(caption_lines) * (_pt(BODY_PT) + 4))
+        caption_lines = [_fmt_time(piece["detection"].get("timestamp"))] + _wrap(description, caption_font, 200)
+        cap_w = min(220, max(caption_font.getlength(line) for line in caption_lines) + 4)
+        cap_h = int(len(caption_lines) * (_pt(CAPTION_PT) + 3))
         x, y_text = _place_caption(
             piece["left"], piece["top"], block_w, block_h, cap_w, cap_h, art_w, art_h, occupied,
         )
         cursor = y_text
         for line in caption_lines:
             _draw_text(art_draw, x, cursor, line, caption_font)
-            cursor += _pt(BODY_PT) + 4
+            cursor += _pt(CAPTION_PT) + 3
         occupied.append((x, y_text, x + cap_w, y_text + cap_h))
     if content["message"]:
         _draw_text(art_draw, 8, 12, content["message"], caption_font)

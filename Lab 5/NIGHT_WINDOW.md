@@ -8,7 +8,7 @@ Get consent from everyone in the household before a camera run. Point the camera
 
 ## Short test
 
-The default watch is 15 seconds, with a sample every 10 seconds. That is a test, not a night.
+The default watch is 15 seconds, with a sample every 2 seconds. That is a test, not a night. The short gap is there so several frames of the same place can stack on the card.
 
 ```bash
 python night_window.py observe --headless
@@ -20,7 +20,7 @@ The command prints the session folder. Inside it, the only file is `morning_post
 
 ## Longer observation
 
-Pass `--duration` yourself. Nothing longer than the 15-second default runs unless you do. Interval stays in the lab's 5 to 30 second range unless you change it. This samples still frames. It does not record video.
+Pass `--duration` yourself. Nothing longer than the 15-second default runs unless you do. The default sample interval is 2 seconds. Pass a larger `--interval` on a long watch if the Pi gets warm. This samples still frames. It does not record video.
 
 ```bash
 tmux new -s night
@@ -52,11 +52,11 @@ Each session folder contains only:
 
 Crops are written to a temporary folder so the postcard can be drawn, then that folder is removed. There is no log, HTML page, or crop directory left behind.
 
-Repeated nearby boxes of the same class become one figure. The rule is: same class, normalized centers within 0.18 of the frame, and no more than 3 sample intervals apart. That is proximity. It is not the same individual. The card does not list every frame.
+Repeated nearby boxes of the same class still share one caption. The rule is: same class, normalized centers within 0.18 of the frame, and no more than 3 sample intervals apart. That is proximity. It is not the same individual. Up to six of those frames are drawn on top of each other, slightly shifted, so the pile shows more than the single best crop. A busy night keeps at most about eighteen frames on the sheet.
 
 ## Postcard
 
-The top left has `DATE` and `OBSERVATION PERIOD` in IBM Plex Mono Light, about 6–7 pt at 300 dpi. The rest of the sheet is colored ASCII of the masked objects. Beside each figure is its time and one short description. When Qwen answers, that line begins with `Qwen imagines:`. There is no confidence, coordinate, count, legend, or footer.
+The top left has `DATE` and `OBSERVATION PERIOD` in IBM Plex Mono Light, about 6–7 pt at 300 dpi. The rest of the sheet is colored ASCII of the masked objects. Beside each figure, the time and description are smaller, about 5 pt. When Qwen answers, that line begins with `Qwen imagines:`. There is no confidence, coordinate, count, legend, or footer.
 
 Colors are `rgb(r, g, b)` with each channel chosen from 0–255. A color that would disappear into the paper is drawn again. Layout and color come from a seed derived from the session, unless you pass `--seed`. The same session data draws the same card. Text sits on the paper, with a one-pixel halo so it stays readable. It is not set in a box.
 

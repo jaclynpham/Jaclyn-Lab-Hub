@@ -17,7 +17,13 @@ import cv2
 from observatory.coco import class_names_from_args, resolve_class_ids
 from observatory.gesture import is_quiet_coyote, landmarks_from, try_hand_detector
 from observatory.logio import make_detection
-from observatory.postcard import load_texture_bytes, retain_only, select_sightings, write_postcard
+from observatory.postcard import (
+    layered_drawings,
+    load_texture_bytes,
+    retain_only,
+    select_sightings,
+    write_postcard,
+)
 from observatory.poster import seed_from_session
 from observatory.qwen_notes import DEFAULT_MODEL, collect_notes
 from observatory.segment import crop_window, open_segmenter
@@ -290,9 +296,9 @@ def run_observe(args, camera=None, predictor=None, clock=None, sleeper=None):
             f"Short test watch: {args.duration:g} s. Pass --duration for a longer observation.",
             flush=True,
         )
-    if not 5 <= args.interval <= 30:
+    if args.interval < 1:
         print(
-            f"Interval is {args.interval:g} s. The lab's usual range is 5 to 30 s, to keep the Pi cool.",
+            f"Interval is {args.interval:g} s. That is very fast and will warm the Pi.",
             flush=True,
         )
     if class_names is None:
@@ -385,9 +391,11 @@ def _publish_postcard(args, session_dir, meta, detections, samples, counts, reas
     if counts["detections"] == 0:
         print("No detections recorded.", flush=True)
     reps = select_sightings(detections, meta.get("interval_s"))
+    drawn = layered_drawings(detections, meta.get("interval_s"))
     print(
-        f"postcard figures: {len(reps)} sightings from {counts['detections']} detections. "
-        "Nearby repeats are grouped. That is not the same individual.",
+        f"postcard figures: {len(drawn)} layered frames across {len(reps)} sightings, "
+        f"from {counts['detections']} detections. Nearby repeats share one caption. "
+        "That is not the same individual.",
         flush=True,
     )
     skip = bool(getattr(args, "skip_qwen", False))

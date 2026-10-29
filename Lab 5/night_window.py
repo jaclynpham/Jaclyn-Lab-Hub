@@ -12,7 +12,8 @@ unchanged.
     python night_window.py observe --classes bird,car,bus
 
 Default duration is 15 seconds so a forgotten flag cannot watch all night.
-Pass --duration for a longer observation. Default interval is 10 seconds.
+Pass --duration for a longer observation. Default interval is 2 seconds,
+so a short watch still stacks several frames.
 Ctrl-C stops early and still writes the postcard. Quiet Coyote (--gesture) is optional.
 """
 import os
@@ -38,8 +39,8 @@ def build_parser():
     observe = sub.add_parser("observe", help="sample the camera, then write morning_postcard.png")
     observe.add_argument("--duration", type=float, default=15,
                          help="seconds to watch (default 15, a short test; set this for a real night)")
-    observe.add_argument("--interval", type=float, default=10,
-                         help="seconds between samples (default 10; the lab suggests 5 to 30)")
+    observe.add_argument("--interval", type=float, default=2,
+                         help="seconds between samples (default 2, so frames can stack)")
     observe.add_argument("--camera", type=int, default=0, help="camera index")
     observe.add_argument("--model", default="yolo26n_ncnn_model", help="YOLO26 nano NCNN detection model path")
     observe.add_argument("--seg-model", default=None,

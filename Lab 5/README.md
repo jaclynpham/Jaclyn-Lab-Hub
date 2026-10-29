@@ -320,6 +320,8 @@ Storyboard a night-time interaction built on your observant system, in three pan
 2. **While asleep.** What does the device watch or work through?
 3. **When awake.** What is the one thing the person learns, and in what medium?
 
+[Poetic Observation storyboard](storyboard.jpg)
+
 Stuck? A kitchen that tells you who raided the fridge. A desk that reports whether you actually went to bed. A window that names the quietest hour. A plant that describes its night. Find something better.
 
 Use storyboards and/or [Verplank diagrams](https://ccrma.stanford.edu/courses/250a-fall-2004/IDSketchbok.pdf).

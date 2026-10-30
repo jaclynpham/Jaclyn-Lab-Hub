@@ -12,8 +12,9 @@ import cv2
 import numpy as np
 
 import sys
-LAB = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(LAB))
+ROOT = Path(__file__).resolve().parents[1]
+LAB = ROOT.parent
+sys.path.insert(0, str(ROOT))
 
 from PIL import Image
 from night_window import build_parser, main

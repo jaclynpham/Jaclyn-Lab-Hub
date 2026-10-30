@@ -64,7 +64,7 @@ def build_parser():
     observe.add_argument("--qwen-model", default=DEFAULT_MODEL, help="local Ollama model, image-capable")
     observe.add_argument("--seed", type=int, default=None, help="layout seed; default comes from the session")
     observe.add_argument("--texture", default=None,
-                         help="paper texture image; default is poetic surveillance/paper texture .jpg if present")
+                         help="paper texture image; default is paper texture .jpg in this folder")
     return parser
 
 

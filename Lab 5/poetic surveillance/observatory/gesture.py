@@ -41,6 +41,11 @@ def is_quiet_coyote(lm_list):
 
 def try_hand_detector():
     try:
+        import sys
+        from pathlib import Path
+        lab = Path(__file__).resolve().parents[2]
+        if str(lab) not in sys.path:
+            sys.path.insert(0, str(lab))
         import HandTrackingModule as htm
         return htm.handDetector(detectionCon=0.7)
     except Exception as exc:

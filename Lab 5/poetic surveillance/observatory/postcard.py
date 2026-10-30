@@ -478,7 +478,7 @@ def retain_only(folder, keep):
 def load_texture_bytes(explicit=None):
     found = find_texture(explicit)
     if found is None:
-        looked = explicit or "poetic surveillance/paper texture .jpg"
+        looked = explicit or "paper texture .jpg"
         print(f"Paper texture unavailable ({looked}). Postcard uses a generated paper background.", flush=True)
         return None, looked
     print(f"Paper texture: {found}", flush=True)

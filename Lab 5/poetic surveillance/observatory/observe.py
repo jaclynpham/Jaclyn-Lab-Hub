@@ -67,6 +67,17 @@ class OpenCVCamera:
         self.cap.release()
 
 
+def resolve_model_path(model_path):
+    """Use the given path, or the same name in the parent Lab 5 folder."""
+    path = Path(model_path)
+    if path.exists() or path.is_absolute():
+        return str(path)
+    beside_lab = Path(__file__).resolve().parents[2] / path
+    if beside_lab.exists():
+        return str(beside_lab)
+    return str(path)
+
+
 def build_predictor(model_path, conf, imgsz, class_names):
     if not Path(model_path).exists():
         raise SystemExit(
@@ -78,7 +89,7 @@ def build_predictor(model_path, conf, imgsz, class_names):
     except ImportError as exc:
         raise SystemExit(
             "ultralytics is not installed, so YOLO cannot run. "
-            "Use the Lab 5 virtualenv and pip install -r requirements.txt. "
+            "Use the Lab 5 virtualenv, or pip install -r requirements.txt in this folder. "
             f"({exc})"
         ) from exc
     model = YOLO(str(model_path))
@@ -257,6 +268,7 @@ def run_observe(args, camera=None, predictor=None, clock=None, sleeper=None):
     # Load the model before opening the camera so a missing weight file
     # does not leave the webcam running.
     if predictor is None:
+        args.model = resolve_model_path(args.model)
         predictor = build_predictor(args.model, args.conf, args.imgsz, class_names)
     segmenter = open_segmenter(getattr(args, "seg_model", None), class_names, args.conf, args.imgsz)
     if camera is None:

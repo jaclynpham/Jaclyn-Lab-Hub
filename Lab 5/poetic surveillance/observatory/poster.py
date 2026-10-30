@@ -31,7 +31,7 @@ TEXTURE_NAME = "paper texture .jpg"
 
 
 def default_texture_path():
-    return Path(__file__).resolve().parents[1] / "poetic surveillance" / TEXTURE_NAME
+    return Path(__file__).resolve().parents[1] / TEXTURE_NAME
 
 
 def find_texture(explicit=None):

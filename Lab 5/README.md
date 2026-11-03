@@ -309,7 +309,7 @@ One person came in from the right, moved close to the camera, and left after abo
 
 Poetic Surveillance asks how a machine interprets a human life. Before bed the camera is pointed at a window and the watch is started. During the watch the Pi samples still frames, finds objects, pulls each one off the background, and redraws it as colored ASCII. In the morning the device gives back one postcard. A short line from local Qwen sits beside a figure and is labeled `Qwen imagines:`. That line is a guess, not a record of what happened.
 
-The project note, with the same images, is in [poetic surveillance/README.md](poetic%20surveillance/README.md). Vasudha and Demi wrote the DHT11 path: [`night_window_temp.py`](night_window_temp.py) and the temperature stamp in [`observatory/postcard.py`](observatory/postcard.py). The watch without that sensor is [`poetic surveillance/night_window.py`](poetic%20surveillance/night_window.py).
+Vasudha and Demi wrote the DHT11 path: [`night_window_temp.py`](night_window_temp.py) and the temperature stamp in [`observatory/postcard.py`](observatory/postcard.py). The watch without that sensor is [`poetic surveillance/night_window.py`](poetic%20surveillance/night_window.py).
 
 ## Part F.
 ### Read Part 2 and storyboard your night-time interaction
@@ -348,15 +348,24 @@ The mockup above is the revised board. The built cards below are what that board
 
 \*\*\***Describe the interaction before.**\*\*\*
 
-The hand-off is starting the watch. From `Lab 5/poetic surveillance`:
+The hand-off is starting the watch. From `Lab 5/poetic surveillance`, in the Lab 5 virtualenv:
 
 ```bash
+cd "Lab 5"
+source .venv/bin/activate
+cd "poetic surveillance"
 python night_window.py observe --duration 300 --headless
 ```
 
 That is the thirty-second ritual: aim the camera, start the command, leave the room. The Pi acknowledges by opening a session folder and printing that it is headless, so no camera window pops up. `--gesture` adds Quiet Coyote as a start pose, using the same landmark distances as `hand_pose.py`. The watch still runs on the timer if the pose is missed. There is no separate question to dictate. The morning always answers the same thing: what the window held, redrawn, and what Qwen imagines about those crops.
 
-A plain SSH session dies when the laptop closes, so a long watch is started with `nohup` and the log goes to a file.
+`night_window.py` is the watch without the DHT11. Use `night_window_temp.py` from the `Lab 5` folder only when that sensor is connected. The detector is `yolo26n_ncnn_model` in `Lab 5`. Qwen is optional: `ollama pull qwen3.5:0.8b`. Pass `--skip-qwen` when Ollama is down. Each session folder keeps only `morning_postcard.png`.
+
+A plain SSH session dies when the laptop closes. Leave a long watch under `nohup`:
+
+```bash
+nohup python night_window.py observe --duration 28800 --interval 20 --qwen-cap 3 > night.log 2>&1 &
+```
 
 ## Part H.
 ### Incorporate the observant system

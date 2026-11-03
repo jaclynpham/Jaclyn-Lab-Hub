@@ -31,6 +31,10 @@ The mockup sets out three ways the same watch could look. The left sheet separat
 
 [`night_window_temp.py`](../night_window_temp.py) is the same watch with a DHT11 on GPIO D4, read once at each sample. Temperature chooses the color of a stamped band across the card, from violet near 15°C through blue, green, and yellow to red near 40°C. Humidity sets the height of that band. The ink is broken on purpose: uneven pressure, holes, and streaks, so the reading looks pressed into the paper rather than drawn as a chart.
 
+This is that card, November 1, 5:46 PM to 7:46 PM. The blue stamp is the temperature and humidity for the watch. The pile underneath is person, chair, refrigerator, tv, and laptop.
+
+![November 1 postcard with the temperature stamp, 5:46 PM to 7:46 PM](../observations/20261101-174454/morning_postcard.png)
+
 ### Final postcard
 
 This card is one hour, 7:52 PM to 8:52 PM on October 29. Repeated frames of the same nearby figure are stacked in different colors, so an hour of one place becomes a single pile. Times and Qwen lines sit in the margins.

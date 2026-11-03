@@ -309,7 +309,7 @@ One person came in from the right, moved close to the camera, and left after abo
 
 Poetic Surveillance asks how a machine interprets a human life. Before bed the camera is pointed at a window and the watch is started. During the watch the Pi samples still frames, finds objects, pulls each one off the background, and redraws it as colored ASCII. In the morning the device gives back one postcard. A short line from local Qwen sits beside a figure and is labeled `Qwen imagines:`. That line is a guess, not a record of what happened.
 
-The project note, with the same images, is in [poetic surveillance/README.md](poetic%20surveillance/README.md). Vasudha wrote the DHT11 path: [`night_window_temp.py`](night_window_temp.py) and the temperature stamp in [`observatory/postcard.py`](observatory/postcard.py). The watch without that sensor is [`poetic surveillance/night_window.py`](poetic%20surveillance/night_window.py).
+The project note, with the same images, is in [poetic surveillance/README.md](poetic%20surveillance/README.md). Vasudha and Demi wrote the DHT11 path: [`night_window_temp.py`](night_window_temp.py) and the temperature stamp in [`observatory/postcard.py`](observatory/postcard.py). The watch without that sensor is [`poetic surveillance/night_window.py`](poetic%20surveillance/night_window.py).
 
 ## Part F.
 ### Read Part 2 and storyboard your night-time interaction
@@ -393,7 +393,11 @@ The morning object from the hour-long run is this card, 7:52 PM to 8:52 PM on Oc
 
 ![October 29 postcard, 7:52 PM to 8:52 PM](poetic%20surveillance/observations/20261029-195204/morning_postcard.png)
 
-The limit of this reveal: object detection fails in the dark, so the mask cannot subtract the background and there is nothing solid to redraw as ASCII. These postcards were made in daylight and in well-lit rooms. A true night often comes back as an empty card. That empty card is the honest morning.
+The card that carries the DHT11 reading is November 1, 5:46 PM to 7:46 PM. A blue stamp runs across the top: temperature sets that color, humidity sets its height. Under it, the hour stacks person, chair, refrigerator, tv, and laptop, with times and Qwen lines in the margins.
+
+![November 1 postcard with the temperature stamp, 5:46 PM to 7:46 PM](observations/20261101-174454/morning_postcard.png)
+
+The limit of this reveal: object detection fails in the dark, so the mask cannot subtract the background and there is nothing solid to redraw as ASCII. These postcards were made in daylight and in well-lit rooms. A true night often comes back as an empty card. 
 
 ## Final documentation
 

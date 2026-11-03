@@ -1,10 +1,10 @@
 # Observant Systems: Overnight Sensation
 
-**Team:**
+**Team:** Jaclyn Pham, Demi Hu, Vasudha Devkota
 
-**Members:** Full Name (netid, github-handle), ...
+**Members:** Jaclyn Pham (cqp4), Demi Hu (dh785), Vasudha Devkota (vd269)
 
-**Project name:**
+**Project name:** Poetic Surveillance
 
 <details>
 	<summary><strong>Instructions for Students (Click to Expand)</strong></summary>

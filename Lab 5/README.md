@@ -66,6 +66,9 @@ This readme.md page in your own repository should be edited to include the work 
 
 ---
 
+<details>
+<summary><strong>Part 1: the tools (click to expand)</strong></summary>
+
 # Part 1
 
 ## Part A. 
@@ -300,89 +303,109 @@ One person came in from the right, moved close to the camera, and left after abo
 
 ---
 
+</details>
+
 # Lab 5 Part 2: Overnight Sensation
 
-For Part 2, you will use the observant system from Part 1 to design a night-time interaction. On-device AI is slow, so let it work while you sleep. The person meets the device twice: **before bed**, when they hand the night over, and **when awake**, when the device gives something back. In between, the pipeline from Part E runs on its own.
+Poetic Surveillance asks how a machine interprets a human life. Before bed the camera is pointed at a window and the watch is started. During the watch the Pi samples still frames, finds objects, pulls each one off the background, and redraws it as colored ASCII. In the morning the device gives back one postcard. A short line from local Qwen sits beside a figure and is labeled `Qwen imagines:`. That line is a guess, not a record of what happened.
 
-Two flavors, pick one or mix them:
+The project note, with the same images, is in [poetic surveillance/README.md](poetic%20surveillance/README.md). Vasudha wrote the DHT11 path: [`night_window_temp.py`](night_window_temp.py) and the temperature stamp in [`observatory/postcard.py`](observatory/postcard.py). The watch without that sensor is [`poetic surveillance/night_window.py`](poetic%20surveillance/night_window.py).
 
-* **Sense all night.** The Pi watches, listens or measures from bedtime until morning and keeps a log.
-* **Process all night.** You already have the data (a day of phone photos, a long recording) and the Pi needs hours to get through it.
-
-Two house rules. Sample rather than stream: one look every 5 to 30 seconds is plenty, and it keeps the Pi cool. And keep everything on the Pi: tell the people you live with, point the camera at things rather than at beds, and delete the snapshots after the demo.
-
-## Part F. 
+## Part F.
 ### Read Part 2 and storyboard your night-time interaction
 
-Storyboard a night-time interaction built on your observant system, in three panels:
-
-1. **Before bed.** How does the person hand the night over, and how does the device acknowledge it?
-2. **While asleep.** What does the device watch or work through?
-3. **When awake.** What is the one thing the person learns, and in what medium?
-
-[Poetic Observation storyboard](poetic%20surveillance/storyboard.jpg)
-
-Stuck? A kitchen that tells you who raided the fridge. A desk that reports whether you actually went to bed. A window that names the quietest hour. A plant that describes its night. Find something better.
-
-Use storyboards and/or [Verplank diagrams](https://ccrma.stanford.edu/courses/250a-fall-2004/IDSketchbok.pdf).
-
 \*\*\***Insert ideas, sketches, Verplank diagrams and storyboards for your night-time interaction here.**\*\*\*
+
+The night has three beats.
+
+1. **Before bed.** Point the camera at the window, away from beds and neighboring windows, and start the watch. Quiet Coyote, the hand pose from Part C, can start it. If the pose never comes, the timer starts anyway.
+2. **While asleep.** The Pi takes a still frame every few seconds. It does not record video. Each frame is a box from YOLO, then a foreground mask, then ASCII.
+3. **When awake.** One portrait postcard, `morning_postcard.png`. The date and the observation period are at the top. Each figure has a time and one short line.
+
+[First storyboard](poetic%20surveillance/storyboard.jpg)
+
+The later mockup tries three printings of that same watch. The left sheet separates figures and gives each a line. The middle sheet lets many frames pile into one field. The right sheet leaves a figure inside a night photograph. The built cards follow the first two. The night photograph is the case the detector cannot yet make.
+
+![Poetic Surveillance mockup](Poetic%20Surveillance%20mockup.png)
 
 ## Prep for Part 2
 
 1. Look at and give feedback on the Part F storyboards.
    **Put the feedback for your ideas here.**
+
+   No written peer note is in this repo. The revision comes from Part E. The language model only sees what we hand it, and it invents the rest. A YOLO box is a rectangle, not a person. The morning object had to show both of those limits: ASCII only where a mask kept the foreground, and every Qwen sentence marked as imagination.
+
 2. [Update your Lab Hub](prep.md#get-the-latest-content) to get the latest content for Part 2.
-3. Decide where the device will spend the night and who else lives there. Get their OK before the first run.
+3. Decide where the device will spend the night and who else lives there. Get their OK before the first run. The camera stays on a window, not a bed, and not a neighbor's window.
 4. Revise your storyboard with the feedback and with what you learned in Part E about where the pipeline breaks.
 
 \*\*\***Post your revised storyboard here.**\*\*\*
 
-## Part G. 
-### Design the interaction before
+The mockup above is the revised board. The built cards below are what that board became once the pipeline was real.
 
-The hand-off: the person tells the device what to watch tonight, and the device acknowledges it. Keep it to a thirty-second ritual. A button or a touch (Lab 4), a spoken sentence (Lab 3), a wave or a Quiet Coyote at the camera (Part C). The acknowledgement can be a line on the display, a tone, or an LED that dims rather than lights up. At its simplest, the hand-off just sets the question that the morning will answer.
+## Part G.
+### Design the interaction before
 
 \*\*\***Describe the interaction before.**\*\*\*
 
-## Part H. 
+The hand-off is starting the watch. From `Lab 5/poetic surveillance`:
+
+```bash
+python night_window.py observe --duration 300 --headless
+```
+
+That is the thirty-second ritual: aim the camera, start the command, leave the room. The Pi acknowledges by opening a session folder and printing that it is headless, so no camera window pops up. `--gesture` adds Quiet Coyote as a start pose, using the same landmark distances as `hand_pose.py`. The watch still runs on the timer if the pose is missed. There is no separate question to dictate. The morning always answers the same thing: what the window held, redrawn, and what Qwen imagines about those crops.
+
+A plain SSH session dies when the laptop closes, so a long watch is started with `nohup` and the log goes to a file.
+
+## Part H.
 ### Incorporate the observant system
 
-The Part E pipeline becomes the night shift. `overnight.py` runs your `interpret()` from `yolo_to_qwen.py` every few seconds, people only unless you pass `--all`, and writes the readings to `night_log.jsonl`; the reasoning waits for the morning. Start it inside `tmux` so it keeps running after you close your laptop, and stop it with Ctrl-C in the morning:
+The night shift is `night_window.py`, the Part E pipeline kept on the Pi and turned into one image. YOLO26n returns a rectangle and a class name. The rectangle is not a silhouette. OpenCV GrabCut estimates the foreground inside the padded box. A mask that still fills the box is thrown out, and that crop never becomes art. The pixels that remain become ASCII: darker characters where the crop is darker, blank paper where the background was. Nearby repeats of the same class share one caption and stack, slightly shifted, up to six frames.
 
-```
-(.venv) pi@raspberrypi:~/Interactive-Lab-Hub/Lab 5 $ tmux new -s night
-(.venv) pi@raspberrypi:~/Interactive-Lab-Hub/Lab 5 $ python overnight.py
-```
+After the camera stops, up to three isolated crops go to local Qwen (`qwen3.5:0.8b` on Ollama). Each request includes the crop and the detector metadata: class, time, confidence, and rough position. The prompt asks for one imaginative sentence and forbids treating it as fact. The postcard prints `Qwen imagines:`.
 
-Fake a night first: run it for thirty seconds while you walk around, stop it, and run `morning.py` from Part I. When that looks right, run a real night. If your storyboard needs a sensor rather than the camera, swap in the Lab 4 example code and log its reading the same way.
+[`night_window_temp.py`](night_window_temp.py) is the same watch with a DHT11 on GPIO D4, read once per sample. Temperature picks the color of a stamped band, from violet near 15°C to red near 40°C. Humidity sets the height of that band. The ink is broken up so it reads as a stamp, not a chart.
 
 \*\*\***Screenshots or videos of the running system.**\*\*\*
 
-## Part I. 
+October 28, no humidity sensor. The first card still prints confidence and position. The later cards keep a time and, when Ollama answered, a Qwen line.
+
+<p>
+  <img src="poetic%20surveillance/observations/20261028-192139/morning_postcard.png" alt="October 28, 7:21 PM postcard" width="220">
+  <img src="poetic%20surveillance/observations/20261028-221536/morning_postcard.png" alt="October 28, 10:15 PM postcard" width="220">
+  <img src="poetic%20surveillance/observations/20261028-222237/morning_postcard.png" alt="October 28, 10:22 PM postcard" width="220">
+  <img src="poetic%20surveillance/observations/20261028-223351/morning_postcard.png" alt="October 28, 10:33 PM postcard" width="220">
+</p>
+<p>
+  <img src="poetic%20surveillance/observations/20261028-223752/morning_postcard.png" alt="October 28, 10:37 PM postcard" width="220">
+  <img src="poetic%20surveillance/observations/20261028-223853/morning_postcard.png" alt="October 28, 10:38 PM postcard" width="220">
+  <img src="poetic%20surveillance/observations/20261028-223944/morning_postcard.png" alt="October 28, 10:39 PM postcard" width="220">
+  <img src="poetic%20surveillance/observations/20261028-224535/morning_postcard.png" alt="October 28, 10:45 PM postcard" width="220">
+</p>
+
+## Part I.
 ### Design the interaction after
 
-The reveal. The night produced a log; the morning turns it into something a half-awake person can take in. `morning.py` is the smallest version: it asks Qwen for a three-sentence report.
+The reveal is the postcard, not the three-sentence report from `morning.py`. A half-awake person gets one sheet: date, observation period, stacked ASCII, and a few short lines. If the watch saw nothing it could draw, the sheet still finishes and says "No detections recorded".
 
-```
-(.venv) pi@raspberrypi:~/Interactive-Lab-Hub/Lab 5 $ python morning.py
-```
+The morning object from the hour-long run is this card, 7:52 PM to 8:52 PM on October 29. Repeated frames of the same nearby figure stack in different colors.
 
-Make it yours: show the report on the Mini PiTFT, read it aloud with Piper from Lab 3, plot the night as a timeline, or ask for JSON (`--json`, Part D) and move a servo. Whatever you pick, make sure it is honest about a night in which nothing happened.
+![October 29 postcard, 7:52 PM to 8:52 PM](poetic%20surveillance/observations/20261029-195204/morning_postcard.png)
+
+The limit of this reveal: object detection fails in the dark, so the mask cannot subtract the background and there is nothing solid to redraw as ASCII. These postcards were made in daylight and in well-lit rooms. A true night often comes back as an empty card. That empty card is the honest morning.
 
 ## Final documentation
 
-Document all the prototypes and iterations you have designed and worked on. The deliverables for this lab are writings, sketches, photos, and videos that show what your system:
-
-* "Looks like": how the device sits in the room at night, and what it looks like at bedtime and in the morning.
-* "Works like": the pipeline from detector to interpreter to log to reasoner, with a real night's data.
-* "Acts like": how a person hands the night over and what they get back.
+* **Looks like.** The device is a Pi and a camera aimed at a window. At bedtime it is a command. In the morning it is a paper postcard, the mockup's left and middle sheets rather than a dashboard. The humidity version adds a colored stamp whose height is the humidity.
+* **Works like.** Detector, then interpreter. YOLO gives a box. GrabCut keeps the foreground or rejects the crop. ASCII is drawn only from the mask. The log is the session, and the reasoner is local Qwen, shown the crop plus class, time, confidence, and position. Qwen does not see the whole frame, and its sentence is labeled imagination.
+* **Acts like.** The person starts the watch and leaves. They come back to one image. Nothing in the image claims to know who was there.
 
 \*\*\***Include a short video of the whole system**\*\*\*
 
-As always, make sure you document contributions and ideas from others (and AI) explicitly in your writeup.
+There is no single video of a full night in this repo. The running record is the postcard sequence above, plus the Part B and Part C videos already linked in Part 1. A night run that is closed with the laptop, without `nohup`, stops before it can write the postcard.
 
-You are permitted (but not required) to work in groups and share a turn in; you are expected to make equal contribution on any group work you do, and N people's group project should look like N times the work of a single person's lab. Make sure the page for the group turn in is linked to your personal Interactive Lab Hub page.
+Contributions: the DHT11 reading and the temperature-and-humidity stamp are Vasudha's (`night_window_temp.py`, and the band drawn in `observatory/postcard.py`). The postcard renderer, the mask-before-ASCII step, and this writeup were done in this repo with help from Cursor.
 
 ## Deliverables & Submission for Lab 5
 

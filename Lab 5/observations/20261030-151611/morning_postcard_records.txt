@@ -1,0 +1,1093 @@
+{
+  "meta": {
+    "project": "night-window",
+    "id": "20261030-151611",
+    "started": "2026-10-30T15:16:11",
+    "ended": "2026-10-30T15:21:11",
+    "stopped": "duration",
+    "duration_s": 300.0,
+    "interval_s": 5.0,
+    "camera": 0,
+    "model": "yolo26n_ncnn_model",
+    "imgsz": 320,
+    "conf": 0.4,
+    "all_classes": true,
+    "classes": [],
+    "frame_width": 640,
+    "frame_height": 480,
+    "samples": 60,
+    "detections": 30
+  },
+  "samples": [
+    {
+      "timestamp": "2026-10-30T15:16:11",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:16",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:21",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:26",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:31",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:36",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:41",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:46",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:51",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:16:56",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:01",
+      "detections": 2,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:06",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:11",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:16",
+      "detections": 2,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:21",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 48.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:26",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:31",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:36",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:41",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:46",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:51",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:17:56",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:01",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:06",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:11",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:16",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:21",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 21.9,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:26",
+      "detections": 2,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:31",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "detections": 6,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:41",
+      "detections": 2,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:46",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:51",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:18:56",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:01",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:06",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:11",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:16",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:21",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:26",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:31",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:36",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:41",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:46",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:51",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:19:56",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:01",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:06",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:11",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:16",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:21",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:26",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:31",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:36",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:41",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:46",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:51",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.0,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:20:56",
+      "detections": 0,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:21:01",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    },
+    {
+      "timestamp": "2026-10-30T15:21:06",
+      "detections": 1,
+      "frame_ok": true,
+      "temperature_c": 22.1,
+      "humidity_percent": 47.0
+    }
+  ],
+  "detections": [
+    {
+      "timestamp": "2026-10-30T15:16:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7642,
+      "bbox": [
+        9.3,
+        43.6,
+        42.6,
+        113.4
+      ],
+      "position": {
+        "cx": 0.0406,
+        "cy": 0.1635,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:16:41",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7139,
+      "bbox": [
+        193.9,
+        38.2,
+        237.4,
+        113.0
+      ],
+      "position": {
+        "cx": 0.3369,
+        "cy": 0.1576,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:16:46",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.6396,
+      "bbox": [
+        435.9,
+        54.9,
+        477.1,
+        115.6
+      ],
+      "position": {
+        "cx": 0.7133,
+        "cy": 0.1776,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:01",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.6255,
+      "bbox": [
+        464.4,
+        44.6,
+        491.6,
+        110.2
+      ],
+      "position": {
+        "cx": 0.7469,
+        "cy": 0.1612,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:01",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5659,
+      "bbox": [
+        439.8,
+        46.0,
+        461.2,
+        106.2
+      ],
+      "position": {
+        "cx": 0.7039,
+        "cy": 0.1586,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:06",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.8018,
+      "bbox": [
+        413.2,
+        40.8,
+        440.8,
+        117.8
+      ],
+      "position": {
+        "cx": 0.6672,
+        "cy": 0.1651,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:11",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.8198,
+      "bbox": [
+        314.5,
+        45.8,
+        342.0,
+        128.4
+      ],
+      "position": {
+        "cx": 0.5129,
+        "cy": 0.1815,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:16",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7524,
+      "bbox": [
+        72.8,
+        53.6,
+        104.2,
+        149.4
+      ],
+      "position": {
+        "cx": 0.1383,
+        "cy": 0.2115,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:16",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7437,
+      "bbox": [
+        100.4,
+        56.1,
+        138.1,
+        136.6
+      ],
+      "position": {
+        "cx": 0.1863,
+        "cy": 0.2008,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:17:26",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.6729,
+      "bbox": [
+        78.8,
+        42.6,
+        117.1,
+        118.1
+      ],
+      "position": {
+        "cx": 0.153,
+        "cy": 0.1674,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:01",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.4519,
+      "bbox": [
+        0.0,
+        64.8,
+        12.5,
+        106.7
+      ],
+      "position": {
+        "cx": 0.0098,
+        "cy": 0.1786,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:06",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5176,
+      "bbox": [
+        184.5,
+        50.3,
+        211.5,
+        108.7
+      ],
+      "position": {
+        "cx": 0.3094,
+        "cy": 0.1656,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480,
+      "crop_path": "/tmp/night-window-b0io5fn0/20261030-151806-s23-person-0.png",
+      "mask_path": "/tmp/night-window-b0io5fn0/20261030-151806-s23-person-0-mask.png"
+    },
+    {
+      "timestamp": "2026-10-30T15:18:11",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7583,
+      "bbox": [
+        399.6,
+        46.4,
+        431.4,
+        106.6
+      ],
+      "position": {
+        "cx": 0.6492,
+        "cy": 0.1594,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:26",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5273,
+      "bbox": [
+        66.8,
+        41.5,
+        87.0,
+        101.3
+      ],
+      "position": {
+        "cx": 0.1201,
+        "cy": 0.1487,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:26",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5137,
+      "bbox": [
+        116.3,
+        46.0,
+        145.2,
+        104.5
+      ],
+      "position": {
+        "cx": 0.2043,
+        "cy": 0.1568,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:31",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5898,
+      "bbox": [
+        225.3,
+        40.9,
+        246.7,
+        103.1
+      ],
+      "position": {
+        "cx": 0.3688,
+        "cy": 0.15,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480,
+      "crop_path": "/tmp/night-window-b0io5fn0/20261030-151831-s28-person-0.png",
+      "mask_path": "/tmp/night-window-b0io5fn0/20261030-151831-s28-person-0-mask.png"
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7368,
+      "bbox": [
+        107.4,
+        49.4,
+        141.4,
+        112.4
+      ],
+      "position": {
+        "cx": 0.1943,
+        "cy": 0.1685,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.6772,
+      "bbox": [
+        374.4,
+        40.1,
+        393.6,
+        98.9
+      ],
+      "position": {
+        "cx": 0.6,
+        "cy": 0.1448,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.6299,
+      "bbox": [
+        409.6,
+        42.2,
+        436.4,
+        104.3
+      ],
+      "position": {
+        "cx": 0.6609,
+        "cy": 0.1526,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.603,
+      "bbox": [
+        453.6,
+        47.4,
+        473.4,
+        102.1
+      ],
+      "position": {
+        "cx": 0.7242,
+        "cy": 0.1557,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5137,
+      "bbox": [
+        399.1,
+        44.5,
+        413.9,
+        101.2
+      ],
+      "position": {
+        "cx": 0.6352,
+        "cy": 0.1518,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.407,
+      "bbox": [
+        421.9,
+        43.7,
+        438.1,
+        104.3
+      ],
+      "position": {
+        "cx": 0.6719,
+        "cy": 0.1542,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:41",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5801,
+      "bbox": [
+        487.6,
+        40.2,
+        507.4,
+        94.1
+      ],
+      "position": {
+        "cx": 0.7773,
+        "cy": 0.1398,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:41",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.468,
+      "bbox": [
+        504.8,
+        39.0,
+        523.2,
+        94.3
+      ],
+      "position": {
+        "cx": 0.8031,
+        "cy": 0.1388,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:18:46",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5552,
+      "bbox": [
+        473.2,
+        41.6,
+        495.8,
+        101.9
+      ],
+      "position": {
+        "cx": 0.757,
+        "cy": 0.1495,
+        "horizontal": "right",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:20:01",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.8379,
+      "bbox": [
+        135.8,
+        57.4,
+        171.2,
+        134.1
+      ],
+      "position": {
+        "cx": 0.2398,
+        "cy": 0.1995,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:20:36",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.406,
+      "bbox": [
+        611.8,
+        224.4,
+        640.0,
+        364.6
+      ],
+      "position": {
+        "cx": 0.9779,
+        "cy": 0.6135,
+        "horizontal": "right",
+        "vertical": "middle"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:20:41",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.4053,
+      "bbox": [
+        249.5,
+        53.9,
+        274.0,
+        115.6
+      ],
+      "position": {
+        "cx": 0.409,
+        "cy": 0.1766,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:21:01",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.8037,
+      "bbox": [
+        0.1,
+        61.4,
+        41.3,
+        161.6
+      ],
+      "position": {
+        "cx": 0.0323,
+        "cy": 0.2323,
+        "horizontal": "left",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    },
+    {
+      "timestamp": "2026-10-30T15:21:06",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.5771,
+      "bbox": [
+        269.8,
+        46.0,
+        310.2,
+        157.0
+      ],
+      "position": {
+        "cx": 0.4531,
+        "cy": 0.2115,
+        "horizontal": "center",
+        "vertical": "upper"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480
+    }
+  ],
+  "speculations": [
+    {
+      "timestamp": "2026-10-30T15:18:06",
+      "class_name": "person",
+      "text": "The moon hangs low and pale over the darkened window, casting long shadows that seem to stretch toward the ceiling where nothing is visible.",
+      "model": "qwen3.5:0.8b"
+    },
+    {
+      "timestamp": "2026-10-30T15:18:31",
+      "class_name": "person",
+      "text": "A soft, glowing orb of light drifted gently across the glass pane above me as I watched the stars begin to twinkle in the dark.",
+      "model": "qwen3.5:0.8b"
+    }
+  ]
+}

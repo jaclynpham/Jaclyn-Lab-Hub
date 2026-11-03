@@ -3,4 +3,3 @@ opencv-python==4.11.0.86
 ultralytics
 ncnn
 requests
-pillow

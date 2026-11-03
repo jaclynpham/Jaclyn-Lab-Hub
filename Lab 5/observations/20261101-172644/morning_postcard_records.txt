@@ -1,0 +1,116 @@
+{
+  "meta": {
+    "project": "night-window",
+    "id": "20261101-172644",
+    "started": "2026-11-01T17:26:44",
+    "ended": "2026-11-01T17:26:57",
+    "stopped": "interrupt",
+    "duration_s": 30.0,
+    "interval_s": 2,
+    "camera": 0,
+    "model": "yolo26n_ncnn_model",
+    "imgsz": 320,
+    "conf": 0.4,
+    "all_classes": false,
+    "classes": [
+      "person",
+      "bird",
+      "bus",
+      "car",
+      "dog"
+    ],
+    "frame_width": 640,
+    "frame_height": 480,
+    "samples": 5,
+    "detections": 2
+  },
+  "samples": [
+    {
+      "timestamp": "2026-11-01T17:26:44",
+      "detections": 0,
+      "frame_ok": true
+    },
+    {
+      "timestamp": "2026-11-01T17:26:50",
+      "detections": 0,
+      "frame_ok": true
+    },
+    {
+      "timestamp": "2026-11-01T17:26:52",
+      "detections": 2,
+      "frame_ok": true
+    },
+    {
+      "timestamp": "2026-11-01T17:26:54",
+      "detections": 0,
+      "frame_ok": true
+    },
+    {
+      "timestamp": "2026-11-01T17:26:56",
+      "detections": 0,
+      "frame_ok": true
+    }
+  ],
+  "detections": [
+    {
+      "timestamp": "2026-11-01T17:26:52",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.7676,
+      "bbox": [
+        211.4,
+        141.1,
+        585.6,
+        475.9
+      ],
+      "position": {
+        "cx": 0.6227,
+        "cy": 0.6427,
+        "horizontal": "center",
+        "vertical": "middle"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480,
+      "crop_path": "/tmp/night-window-ot5lbqpz/20261101-172652-s2-person-0.png",
+      "mask_path": "/tmp/night-window-ot5lbqpz/20261101-172652-s2-person-0-mask.png"
+    },
+    {
+      "timestamp": "2026-11-01T17:26:52",
+      "class_name": "person",
+      "class_id": 0,
+      "confidence": 0.4961,
+      "bbox": [
+        0.1,
+        329.1,
+        113.6,
+        476.9
+      ],
+      "position": {
+        "cx": 0.0888,
+        "cy": 0.8396,
+        "horizontal": "left",
+        "vertical": "lower"
+      },
+      "crop": null,
+      "frame_width": 640,
+      "frame_height": 480,
+      "crop_path": "/tmp/night-window-ot5lbqpz/20261101-172652-s2-person-1.png",
+      "mask_path": "/tmp/night-window-ot5lbqpz/20261101-172652-s2-person-1-mask.png"
+    }
+  ],
+  "speculations": [
+    {
+      "timestamp": "2026-11-01T17:26:52",
+      "class_name": "person",
+      "text": "A soft, amber glow flickers against the dark glass of a closed window as a single figure rests their chin on their hand, eyes half-closed in quiet contemplation.",
+      "model": "qwen3.5:0.8b"
+    },
+    {
+      "timestamp": "2026-11-01T17:26:52",
+      "class_name": "person",
+      "text": "The cold air from the window felt like it was brushing against my face as I stood there in 2026, wondering if this was just a glitch in the system's clock.",
+      "model": "qwen3.5:0.8b"
+    }
+  ]
+}

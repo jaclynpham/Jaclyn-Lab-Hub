@@ -1,0 +1,311 @@
+Headless: no camera window.
+Isolating each crop with OpenCV GrabCut. A YOLO segmentation model is not loaded on its own, because that NCNN build can Bus-error on the Pi.
+Privacy: get consent from everyone in the household, and point the camera away from beds and from neighboring windows. Crops are kept only while the postcard is drawn, then removed. The session folder keeps morning_postcard.png.
+Long watch: 7200 s. You set --duration explicitly.
+Detecting all COCO classes.
+session: observations/20261101-174454
+Loading yolo26n_ncnn_model for NCNN inference...
+17:44:54 2 detection(s): person 0.70 lower/left, refrigerator 0.45 lower/right | 21.3°C, 35% humidity
+17:45:24 2 detection(s): person 0.60 lower/left, refrigerator 0.58 lower/right | 21.2°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+17:45:54 2 detection(s): person 0.92 lower/center, chair 0.42 lower/left | 21.2°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+17:46:24 4 detection(s): chair 0.54 lower/left, refrigerator 0.51 lower/right, chair 0.49 lower/center, tv 0.46 middle/center | 21.2°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+17:46:54 3 detection(s): refrigerator 0.55 lower/right, chair 0.49 lower/left, chair 0.45 lower/center | 21.2°C, 35% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+17:47:24 3 detection(s): chair 0.57 lower/left, chair 0.56 lower/center, refrigerator 0.49 lower/right | 21.2°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+17:47:54 3 detection(s): chair 0.63 lower/left, refrigerator 0.51 lower/right, chair 0.48 lower/center | 21.2°C, 35% humidity
+17:48:24 3 detection(s): chair 0.56 lower/left, chair 0.48 lower/center, refrigerator 0.46 lower/right | 21.1°C, 35% humidity
+17:48:54 4 detection(s): chair 0.60 lower/left, refrigerator 0.59 lower/right, chair 0.53 lower/center, chair 0.46 lower/left | 21.1°C, 35% humidity
+17:49:24 4 detection(s): refrigerator 0.62 lower/right, chair 0.57 lower/left, chair 0.52 lower/center, chair 0.43 lower/left | 21.1°C, 35% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+17:49:54 3 detection(s): refrigerator 0.50 lower/right, chair 0.47 lower/left, chair 0.47 lower/center | 21.1°C, 35% humidity
+17:50:24 3 detection(s): chair 0.59 lower/left, chair 0.52 lower/center, refrigerator 0.41 lower/right | 21.1°C, 35% humidity
+17:50:54 4 detection(s): chair 0.59 lower/left, chair 0.54 lower/center, refrigerator 0.53 lower/right, chair 0.43 lower/left | 21.1°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+17:51:24 4 detection(s): chair 0.57 lower/center, chair 0.56 lower/left, chair 0.44 lower/left, refrigerator 0.43 lower/right | 21.1°C, 35% humidity
+17:51:54 3 detection(s): chair 0.53 lower/left, chair 0.48 lower/center, refrigerator 0.44 lower/right | 21.2°C, 35% humidity
+17:52:24 3 detection(s): chair 0.45 lower/center, chair 0.44 lower/left, refrigerator 0.43 lower/right | 21.2°C, 35% humidity
+17:52:54 3 detection(s): chair 0.57 lower/left, chair 0.47 lower/center, person 0.43 middle/center | 21.2°C, 35% humidity
+17:53:24 3 detection(s): person 0.54 middle/center, chair 0.52 lower/left, chair 0.52 lower/center | 21.2°C, 35% humidity
+17:53:54 3 detection(s): chair 0.55 lower/center, chair 0.49 lower/left, refrigerator 0.47 lower/right | 21.2°C, 35% humidity
+17:54:24 3 detection(s): chair 0.52 lower/left, refrigerator 0.51 lower/right, chair 0.49 lower/center | 21.2°C, 35% humidity
+17:54:54 4 detection(s): chair 0.57 lower/left, refrigerator 0.55 lower/right, chair 0.52 lower/center, chair 0.41 lower/left | 21.2°C, 35% humidity
+17:55:24 3 detection(s): refrigerator 0.57 lower/right, chair 0.48 lower/left, chair 0.48 lower/center | 21.3°C, 35% humidity
+17:55:54 4 detection(s): refrigerator 0.58 lower/right, chair 0.53 lower/center, chair 0.50 lower/left, chair 0.41 lower/left | 21.3°C, 35% humidity
+17:56:24 3 detection(s): refrigerator 0.58 lower/right, chair 0.54 lower/left, chair 0.52 lower/center | 21.2°C, 35% humidity
+17:56:54 4 detection(s): chair 0.55 lower/center, chair 0.47 lower/left, refrigerator 0.46 lower/right, chair 0.43 lower/left | 21.3°C, 35% humidity
+17:57:24 4 detection(s): chair 0.56 lower/center, chair 0.51 lower/left, refrigerator 0.51 lower/right, chair 0.44 lower/left | 21.3°C, 35% humidity
+17:57:54 3 detection(s): refrigerator 0.55 lower/right, chair 0.49 lower/center, chair 0.45 lower/left | 21.2°C, 35% humidity
+17:58:24 3 detection(s): chair 0.51 lower/center, chair 0.51 lower/left, refrigerator 0.47 lower/right | 21.2°C, 35% humidity
+17:58:54 3 detection(s): chair 0.50 lower/left, chair 0.47 lower/center, refrigerator 0.41 lower/right | 21.2°C, 35% humidity
+17:59:24 3 detection(s): chair 0.56 lower/center, chair 0.48 lower/left, refrigerator 0.48 lower/right | 21.2°C, 35% humidity
+17:59:54 4 detection(s): chair 0.52 lower/center, chair 0.46 lower/left, refrigerator 0.43 lower/right, chair 0.40 lower/left | 21.1°C, 35% humidity
+18:00:24 3 detection(s): refrigerator 0.50 lower/right, chair 0.49 lower/left, chair 0.48 lower/center | 21°C, 35% humidity
+18:00:54 4 detection(s): refrigerator 0.58 lower/right, chair 0.53 lower/center, chair 0.46 lower/left, chair 0.40 lower/left | 21°C, 35% humidity
+18:01:24 3 detection(s): refrigerator 0.47 lower/right, chair 0.47 lower/center, chair 0.45 lower/left | 21°C, 35% humidity
+18:01:54 2 detection(s): chair 0.57 lower/left, chair 0.54 lower/center | 21°C, 35% humidity
+18:02:24 3 detection(s): chair 0.54 lower/center, chair 0.46 lower/left, refrigerator 0.45 lower/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:02:54 3 detection(s): chair 0.54 lower/center, chair 0.48 lower/left, refrigerator 0.41 lower/right | 21°C, 36% humidity
+18:03:24 3 detection(s): chair 0.53 lower/center, chair 0.52 lower/left, refrigerator 0.51 lower/right | 21°C, 36% humidity
+18:03:54 2 detection(s): chair 0.52 lower/center, chair 0.51 lower/left | 21°C, 36% humidity
+18:04:24 3 detection(s): chair 0.49 lower/center, chair 0.47 lower/left, refrigerator 0.46 lower/right | 21°C, 36% humidity
+18:04:54 3 detection(s): refrigerator 0.50 lower/right, chair 0.48 lower/center, chair 0.45 lower/left | 21°C, 36% humidity
+18:05:24 2 detection(s): chair 0.50 lower/center, chair 0.46 lower/left | 21°C, 36% humidity
+18:05:54 3 detection(s): chair 0.50 lower/center, chair 0.46 lower/left, refrigerator 0.41 lower/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:06:24 3 detection(s): chair 0.53 lower/center, person 0.50 middle/center, chair 0.49 lower/left | 21°C, 36% humidity
+18:06:54 3 detection(s): chair 0.50 lower/center, chair 0.50 lower/left, refrigerator 0.48 lower/right | 21.1°C, 36% humidity
+18:07:24 3 detection(s): chair 0.51 lower/center, chair 0.51 lower/left, refrigerator 0.47 lower/right | 21.1°C, 36% humidity
+18:07:54 3 detection(s): chair 0.51 lower/center, refrigerator 0.45 lower/right, chair 0.42 lower/left | 21.1°C, 36% humidity
+18:08:24 3 detection(s): chair 0.51 lower/center, chair 0.43 lower/left, refrigerator 0.42 lower/right | 21.1°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:08:54 2 detection(s): chair 0.49 lower/center, refrigerator 0.43 lower/right | 21.1°C, 36% humidity
+18:09:24 3 detection(s): chair 0.52 lower/center, chair 0.47 lower/left, chair 0.43 lower/left | 21.1°C, 35% humidity
+18:09:54 2 detection(s): chair 0.49 lower/center, refrigerator 0.45 lower/right | 21.1°C, 36% humidity
+18:10:24 3 detection(s): chair 0.47 lower/center, refrigerator 0.47 lower/right, chair 0.44 lower/left | 21.1°C, 36% humidity
+18:10:54 3 detection(s): chair 0.48 lower/center, refrigerator 0.47 lower/right, chair 0.45 lower/left | 21.1°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:11:24 2 detection(s): chair 0.51 lower/center, chair 0.43 lower/left | 21.1°C, 35% humidity
+18:11:54 2 detection(s): chair 0.48 lower/center, chair 0.46 lower/left | 21.2°C, 35% humidity
+18:12:24 2 detection(s): refrigerator 0.50 lower/right, chair 0.46 lower/center | 21.2°C, 35% humidity
+18:12:54 3 detection(s): chair 0.49 lower/center, refrigerator 0.46 lower/right, chair 0.45 lower/left | 21.2°C, 35% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:13:24 4 detection(s): refrigerator 0.54 lower/right, chair 0.51 lower/center, chair 0.44 lower/left, chair 0.43 lower/left | 21.2°C, 35% humidity
+18:13:54 3 detection(s): chair 0.45 lower/center, refrigerator 0.45 lower/right, chair 0.44 lower/left | 21.1°C, 35% humidity
+18:14:24 2 detection(s): chair 0.53 lower/center, chair 0.43 lower/left | 21.1°C, 35% humidity
+18:14:54 2 detection(s): chair 0.45 lower/center, chair 0.44 lower/left | 21°C, 35% humidity
+18:15:24 3 detection(s): chair 0.58 lower/left, chair 0.49 lower/center, refrigerator 0.46 lower/right | 21°C, 36% humidity
+18:15:54 2 detection(s): chair 0.50 lower/center, chair 0.42 lower/left | 20.9°C, 36% humidity
+18:16:24 2 detection(s): chair 0.48 lower/center, chair 0.43 lower/left | 20.9°C, 36% humidity
+18:16:54 2 detection(s): chair 0.46 lower/center, chair 0.41 lower/left | 20.9°C, 36% humidity
+18:17:24 2 detection(s): chair 0.48 lower/center, chair 0.43 lower/left | 20.9°C, 36% humidity
+18:17:54 3 detection(s): chair 0.47 lower/center, refrigerator 0.43 lower/right, chair 0.43 lower/left | 20.9°C, 36% humidity
+18:18:24 3 detection(s): chair 0.50 lower/center, refrigerator 0.46 lower/right, chair 0.43 lower/left | 20.9°C, 36% humidity
+18:18:54 1 detection(s): chair 0.49 lower/center | 20.9°C, 36% humidity
+18:19:24 2 detection(s): chair 0.46 lower/center, refrigerator 0.41 lower/right | 20.9°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:19:54 3 detection(s): chair 0.51 lower/left, chair 0.49 lower/center, refrigerator 0.41 lower/right | 20.9°C, 36% humidity
+18:20:24 3 detection(s): chair 0.50 lower/center, chair 0.45 lower/left, chair 0.43 lower/left | 21°C, 36% humidity
+18:20:54 3 detection(s): person 0.92 lower/center, person 0.58 middle/left, refrigerator 0.52 lower/right | 21°C, 36% humidity
+18:21:24 3 detection(s): person 0.85 lower/right, person 0.60 lower/left, tv 0.48 middle/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:21:54 4 detection(s): person 0.53 lower/center, chair 0.48 lower/center, refrigerator 0.46 lower/right, chair 0.46 lower/left | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:22:24 2 detection(s): chair 0.55 lower/center, refrigerator 0.43 lower/right | 21°C, 36% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+18:22:54 2 detection(s): chair 0.53 lower/center, person 0.45 middle/right | 21°C, 36% humidity
+18:23:24 3 detection(s): chair 0.53 lower/center, person 0.50 middle/center, refrigerator 0.43 lower/right | 21.1°C, 36% humidity
+18:23:54 3 detection(s): person 0.92 lower/center, chair 0.55 middle/left, refrigerator 0.52 lower/right | 21.1°C, 36% humidity
+18:24:24 2 detection(s): chair 0.54 lower/center, chair 0.41 lower/left | 21.1°C, 36% humidity
+18:24:54 2 detection(s): chair 0.51 lower/center, chair 0.42 lower/left | 21.1°C, 36% humidity
+18:25:24 1 detection(s): chair 0.52 lower/center | 21.1°C, 36% humidity
+18:25:54 1 detection(s): chair 0.43 lower/center | 21.1°C, 36% humidity
+18:26:24 2 detection(s): chair 0.47 lower/center, refrigerator 0.42 lower/right | 21.1°C, 36% humidity
+18:26:54 1 detection(s): chair 0.47 lower/center | 21.2°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:27:24 2 detection(s): chair 0.52 lower/center, person 0.49 middle/center | 21.2°C, 36% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+18:27:54 2 detection(s): chair 0.50 lower/center, refrigerator 0.42 lower/right | 21.2°C, 36% humidity
+18:28:24 2 detection(s): chair 0.46 lower/center, refrigerator 0.43 lower/right | 21.1°C, 36% humidity
+18:28:54 3 detection(s): person 0.57 middle/left, chair 0.49 lower/center, refrigerator 0.43 lower/right | 21.1°C, 36% humidity
+18:29:24 4 detection(s): refrigerator 0.50 lower/right, chair 0.48 lower/center, person 0.48 middle/center, person 0.45 middle/center | 21.1°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:29:54 3 detection(s): person 0.72 middle/center, chair 0.52 lower/center, tv 0.44 middle/center | 21.1°C, 36% humidity
+18:30:24 3 detection(s): refrigerator 0.50 lower/right, tv 0.49 middle/left, chair 0.42 lower/center | 21.2°C, 36% humidity
+18:30:54 3 detection(s): person 0.75 middle/center, chair 0.47 lower/center, refrigerator 0.42 lower/right | 21.1°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:31:24 2 detection(s): chair 0.47 lower/center, tv 0.43 middle/left | 21.1°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:31:54 3 detection(s): refrigerator 0.58 lower/right, tv 0.55 middle/left, chair 0.44 lower/center | 21.1°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:32:24 3 detection(s): tv 0.59 middle/left, refrigerator 0.54 lower/right, chair 0.44 lower/center | 21.1°C, 36% humidity
+18:32:54 3 detection(s): chair 0.48 lower/center, tv 0.48 middle/left, refrigerator 0.44 lower/right | 21°C, 36% humidity
+18:33:24 3 detection(s): refrigerator 0.47 lower/right, tv 0.45 middle/left, chair 0.45 lower/center | 20.9°C, 36% humidity
+18:33:54 3 detection(s): tv 0.54 middle/left, chair 0.49 lower/center, refrigerator 0.45 lower/right | 20.9°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:34:24 2 detection(s): tv 0.51 middle/left, refrigerator 0.48 lower/right | 20.9°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:34:54 2 detection(s): refrigerator 0.44 lower/right, tv 0.44 middle/left | 20.9°C, 36% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+18:35:24 2 detection(s): refrigerator 0.48 lower/right, chair 0.45 lower/center | 20.9°C, 36% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+18:35:54 2 detection(s): chair 0.46 lower/center, tv 0.41 middle/left | 20.9°C, 36% humidity
+18:36:24 2 detection(s): tv 0.43 middle/left, chair 0.42 lower/center | 20.8°C, 36% humidity
+18:36:54 3 detection(s): tv 0.49 middle/left, chair 0.46 lower/center, refrigerator 0.46 lower/right | 20.9°C, 36% humidity
+18:37:24 2 detection(s): tv 0.52 middle/left, chair 0.45 lower/center | 20.9°C, 36% humidity
+18:37:54 3 detection(s): tv 0.49 middle/left, refrigerator 0.49 lower/right, chair 0.42 lower/center | 20.9°C, 36% humidity
+18:38:24 3 detection(s): tv 0.52 middle/left, chair 0.45 lower/center, refrigerator 0.42 lower/right | 20.9°C, 36% humidity
+18:38:54 3 detection(s): refrigerator 0.56 lower/right, tv 0.54 middle/left, chair 0.51 lower/center | 20.9°C, 37% humidity
+18:39:24 2 detection(s): chair 0.47 lower/center, tv 0.46 middle/left | 20.9°C, 37% humidity
+18:39:54 3 detection(s): tv 0.47 middle/left, refrigerator 0.45 lower/right, chair 0.44 lower/center | 20.9°C, 36% humidity
+18:40:24 3 detection(s): tv 0.50 middle/left, refrigerator 0.48 lower/right, chair 0.44 lower/center | 20.9°C, 36% humidity
+18:40:54 3 detection(s): refrigerator 0.52 lower/right, tv 0.48 middle/left, chair 0.44 lower/center | 21°C, 36% humidity
+18:41:24 3 detection(s): tv 0.60 middle/left, refrigerator 0.49 lower/right, chair 0.46 lower/center | 21°C, 36% humidity
+18:41:54 3 detection(s): tv 0.50 middle/left, refrigerator 0.46 lower/right, chair 0.46 lower/center | 21°C, 36% humidity
+18:42:24 2 detection(s): tv 0.51 middle/left, chair 0.43 lower/center | 21°C, 36% humidity
+18:42:54 3 detection(s): tv 0.50 middle/left, refrigerator 0.43 lower/right, chair 0.41 lower/center | 21°C, 36% humidity
+18:43:24 3 detection(s): tv 0.46 middle/left, chair 0.46 lower/center, refrigerator 0.42 lower/right | 21°C, 36% humidity
+18:43:54 2 detection(s): chair 0.47 lower/center, tv 0.44 middle/left | 21°C, 36% humidity
+18:44:24 3 detection(s): refrigerator 0.56 lower/right, chair 0.53 lower/center, chair 0.45 lower/left | 21°C, 36% humidity
+18:44:54 3 detection(s): tv 0.49 middle/left, chair 0.46 lower/center, refrigerator 0.44 lower/right | 21°C, 36% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+18:45:24 3 detection(s): tv 0.53 middle/left, refrigerator 0.48 lower/right, chair 0.46 lower/center | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:45:54 3 detection(s): chair 0.46 lower/center, tv 0.43 middle/left, refrigerator 0.43 lower/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:46:24 3 detection(s): chair 0.50 lower/center, tv 0.49 middle/left, refrigerator 0.47 lower/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:46:54 2 detection(s): tv 0.49 middle/left, chair 0.43 lower/center | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:47:24 4 detection(s): refrigerator 0.56 lower/right, tv 0.53 middle/left, chair 0.49 lower/center, chair 0.45 lower/left | 21°C, 36% humidity
+18:47:54 3 detection(s): refrigerator 0.47 lower/right, chair 0.46 lower/center, tv 0.44 middle/left | 21.1°C, 36% humidity
+18:48:24 3 detection(s): tv 0.49 middle/left, refrigerator 0.49 lower/right, chair 0.40 lower/center | 21.1°C, 36% humidity
+18:48:54 3 detection(s): tv 0.54 middle/left, chair 0.43 lower/center, refrigerator 0.41 lower/right | 21.1°C, 36% humidity
+18:49:24 2 detection(s): refrigerator 0.57 lower/right, tv 0.50 middle/left | 21.1°C, 36% humidity
+18:49:54 2 detection(s): refrigerator 0.56 lower/right, tv 0.52 middle/left | 21.1°C, 36% humidity
+18:50:24 1 detection(s): refrigerator 0.48 lower/right | 21.1°C, 36% humidity
+18:50:54 2 detection(s): refrigerator 0.49 lower/right, chair 0.41 lower/center | 21°C, 36% humidity
+18:51:24 2 detection(s): refrigerator 0.47 lower/right, tv 0.43 middle/left | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:51:54 2 detection(s): refrigerator 0.46 lower/right, chair 0.42 lower/center | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:52:24 1 detection(s): refrigerator 0.40 lower/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:52:54 1 detection(s): refrigerator 0.46 lower/right | 21°C, 36% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:53:24 1 detection(s): refrigerator 0.54 lower/right | 21°C, 36% humidity
+18:53:54 1 detection(s): refrigerator 0.43 lower/right | 20.9°C, 37% humidity
+18:54:24 2 detection(s): refrigerator 0.48 lower/right, tv 0.41 middle/left | 20.8°C, 37% humidity
+18:54:54 3 detection(s): refrigerator 0.51 lower/right, tv 0.44 middle/left, chair 0.41 lower/center | 20.9°C, 37% humidity
+18:55:24 1 detection(s): refrigerator 0.51 lower/right | 20.9°C, 37% humidity
+18:55:54 2 detection(s): refrigerator 0.48 lower/right, chair 0.41 lower/center | 20.9°C, 37% humidity
+18:56:24 3 detection(s): refrigerator 0.46 lower/right, tv 0.42 middle/left, chair 0.40 lower/center | 20.9°C, 37% humidity
+18:56:54 2 detection(s): refrigerator 0.56 lower/right, chair 0.45 lower/center | 20.9°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:57:24 1 detection(s): refrigerator 0.44 lower/right | 20.9°C, 37% humidity
+18:57:54 2 detection(s): tv 0.42 middle/left, chair 0.41 lower/center | 20.9°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:58:24 3 detection(s): refrigerator 0.47 lower/right, chair 0.42 lower/center, laptop 0.42 lower/left | 20.9°C, 37% humidity
+18:58:54 3 detection(s): tv 0.43 middle/left, refrigerator 0.43 lower/right, chair 0.42 lower/center | 20.9°C, 37% humidity
+18:59:24 1 detection(s): tv 0.53 middle/left | 20.9°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+18:59:54 2 detection(s): refrigerator 0.43 lower/right, tv 0.41 middle/left | 20.9°C, 37% humidity
+19:00:24 3 detection(s): refrigerator 0.54 lower/right, chair 0.44 lower/center, tv 0.41 middle/left | 21°C, 37% humidity
+19:00:54 2 detection(s): chair 0.44 lower/center, tv 0.41 middle/left | 21°C, 37% humidity
+19:01:24 2 detection(s): chair 0.44 lower/center, refrigerator 0.42 lower/right | 21°C, 37% humidity
+19:01:54 3 detection(s): refrigerator 0.50 lower/right, chair 0.47 lower/center, tv 0.41 middle/left | 21°C, 37% humidity
+19:02:24 1 detection(s): tv 0.44 middle/left | 21°C, 37% humidity
+19:02:54 2 detection(s): person 0.92 lower/center, chair 0.44 lower/right | 21°C, 37% humidity
+19:03:24 1 detection(s): person 0.86 lower/center | 21°C, 37% humidity
+19:03:54 2 detection(s): tv 0.49 middle/left, refrigerator 0.46 lower/right | 21°C, 37% humidity
+19:04:24 3 detection(s): tv 0.50 middle/left, chair 0.46 lower/center, refrigerator 0.45 lower/right | 21°C, 37% humidity
+19:04:54 3 detection(s): refrigerator 0.53 lower/right, tv 0.49 middle/left, chair 0.45 lower/center | 21.1°C, 37% humidity
+19:05:24 3 detection(s): tv 0.49 middle/left, refrigerator 0.46 lower/right, chair 0.44 lower/center | 21.1°C, 37% humidity
+19:05:54 3 detection(s): tv 0.51 middle/left, refrigerator 0.46 lower/right, chair 0.44 lower/center | 21°C, 37% humidity
+19:06:24 2 detection(s): refrigerator 0.60 lower/right, tv 0.54 middle/left | 21.1°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:06:54 2 detection(s): refrigerator 0.63 lower/right, tv 0.50 middle/left | 21.1°C, 37% humidity
+19:07:24 2 detection(s): tv 0.52 middle/left, refrigerator 0.51 lower/right | 21°C, 37% humidity
+19:07:54 3 detection(s): tv 0.54 middle/left, laptop 0.47 middle/left, refrigerator 0.46 lower/right | 21°C, 37% humidity
+19:08:24 1 detection(s): tv 0.48 middle/left | 21°C, 37% humidity
+19:08:54 3 detection(s): refrigerator 0.56 lower/right, tv 0.49 middle/left, chair 0.42 lower/center | 20.9°C, 37% humidity
+19:09:24 2 detection(s): refrigerator 0.48 lower/right, chair 0.43 lower/center | 20.9°C, 37% humidity
+19:09:54 3 detection(s): tv 0.50 middle/left, chair 0.45 lower/center, refrigerator 0.45 lower/right | 20.8°C, 37% humidity
+19:10:24 2 detection(s): tv 0.46 middle/left, refrigerator 0.44 lower/right | 20.8°C, 37% humidity
+19:10:54 3 detection(s): refrigerator 0.49 lower/right, tv 0.46 middle/left, chair 0.42 lower/center | 20.8°C, 37% humidity
+19:11:24 3 detection(s): refrigerator 0.53 lower/right, tv 0.51 middle/left, chair 0.41 lower/center | 20.8°C, 37% humidity
+19:11:54 2 detection(s): refrigerator 0.51 lower/right, tv 0.41 middle/left | 20.8°C, 37% humidity
+19:12:24 3 detection(s): chair 0.42 lower/center, tv 0.42 middle/left, refrigerator 0.40 lower/right | 20.8°C, 37% humidity
+19:12:54 3 detection(s): refrigerator 0.47 lower/right, tv 0.47 middle/left, chair 0.45 lower/center | 20.8°C, 37% humidity
+19:13:24 2 detection(s): tv 0.49 middle/left, refrigerator 0.45 lower/right | 20.8°C, 37% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+19:13:54 2 detection(s): refrigerator 0.49 lower/right, tv 0.43 middle/left | 20.8°C, 37% humidity
+19:14:24 4 detection(s): tv 0.48 middle/left, refrigerator 0.43 lower/right, chair 0.42 lower/center, laptop 0.41 middle/left | 20.8°C, 37% humidity
+19:14:54 2 detection(s): refrigerator 0.55 lower/right, tv 0.49 middle/left | 20.9°C, 37% humidity
+19:15:24 2 detection(s): tv 0.51 middle/left, refrigerator 0.50 lower/right | 20.9°C, 37% humidity
+19:15:54 3 detection(s): tv 0.47 middle/left, refrigerator 0.46 lower/right, chair 0.40 lower/center | 20.9°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:16:24 2 detection(s): tv 0.47 middle/left, refrigerator 0.44 lower/right | 20.9°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:16:54 2 detection(s): refrigerator 0.48 lower/right, tv 0.44 middle/left | 20.9°C, 37% humidity
+19:17:24 2 detection(s): tv 0.47 middle/left, chair 0.46 lower/center | 20.9°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:17:54 4 detection(s): laptop 0.54 middle/left, refrigerator 0.47 lower/right, tv 0.45 middle/left, chair 0.43 lower/center | 20.9°C, 37% humidity
+19:18:24 1 detection(s): refrigerator 0.45 lower/right | 20.9°C, 37% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+19:18:54 2 detection(s): chair 0.42 lower/center, refrigerator 0.41 lower/right | 20.9°C, 37% humidity
+19:19:24 1 detection(s): refrigerator 0.47 lower/right | 21°C, 37% humidity
+19:19:54 1 detection(s): refrigerator 0.45 lower/right | 21°C, 37% humidity
+19:20:24 2 detection(s): refrigerator 0.45 lower/right, chair 0.43 lower/center | 21°C, 37% humidity
+19:20:54 1 detection(s): refrigerator 0.58 lower/right | 21°C, 37% humidity
+19:21:24 2 detection(s): refrigerator 0.53 lower/right, chair 0.46 lower/center | 21°C, 37% humidity
+19:21:54 2 detection(s): refrigerator 0.57 lower/right, chair 0.42 lower/center | 21°C, 37% humidity
+19:22:24 2 detection(s): chair 0.51 lower/center, refrigerator 0.41 lower/right | 21°C, 37% humidity
+19:22:54 2 detection(s): refrigerator 0.53 lower/right, chair 0.41 lower/center | 21°C, 37% humidity
+19:23:24 2 detection(s): refrigerator 0.42 lower/right, chair 0.41 lower/center | 21°C, 37% humidity
+19:23:54 1 detection(s): refrigerator 0.42 lower/right | 21°C, 37% humidity
+19:24:24 2 detection(s): person 0.61 lower/center, refrigerator 0.43 lower/right | 21°C, 37% humidity
+19:24:54 1 detection(s): refrigerator 0.59 lower/right | 21°C, 37% humidity
+19:25:24 1 detection(s): refrigerator 0.42 lower/right | 20.9°C, 37% humidity
+19:25:54 2 detection(s): chair 0.44 lower/center, tv 0.41 middle/left | 20.9°C, 37% humidity
+19:26:24 2 detection(s): chair 0.43 lower/center, refrigerator 0.42 lower/right | 20.9°C, 37% humidity
+19:26:54 2 detection(s): chair 0.44 lower/center, refrigerator 0.40 lower/right | 20.9°C, 37% humidity
+19:27:24 1 detection(s): chair 0.41 lower/center | 20.9°C, 37% humidity
+19:27:54 4 detection(s): person 0.86 middle/right, person 0.49 middle/left, tv 0.46 middle/left, chair 0.44 lower/center | 20.8°C, 37% humidity
+19:28:24 3 detection(s): person 0.81 middle/right, chair 0.50 middle/right, chair 0.40 lower/center | 20.8°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:28:54 1 detection(s): person 0.70 middle/left | 20.8°C, 37% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+19:29:24 4 detection(s): person 0.68 middle/left, person 0.53 middle/left, chair 0.43 lower/center, refrigerator 0.42 lower/right | 20.8°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:29:54 1 detection(s): chair 0.46 lower/center | 20.8°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:30:24 1 detection(s): person 0.61 middle/left | 20.8°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:30:54 1 detection(s): person 0.74 middle/right | 20.8°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:31:24 1 detection(s): chair 0.41 lower/center | 20.8°C, 37% humidity
+Sensor read error: A full buffer was not returned. Try again.; retrying (1/2)
+19:31:54 2 detection(s): chair 0.49 lower/center, laptop 0.41 lower/left | 20.8°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:32:24 2 detection(s): person 0.59 middle/left, chair 0.53 lower/center | 20.8°C, 37% humidity
+19:32:54 4 detection(s): person 0.88 lower/center, person 0.59 middle/left, chair 0.51 lower/center, person 0.50 middle/left | 20.9°C, 38% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:33:24 4 detection(s): person 0.60 lower/left, person 0.46 middle/left, chair 0.45 lower/center, person 0.41 middle/left | 20.9°C, 38% humidity
+19:33:54 4 detection(s): person 0.66 middle/left, person 0.58 middle/left, refrigerator 0.41 lower/right, person 0.41 middle/left | 20.9°C, 37% humidity
+19:34:24 4 detection(s): person 0.72 middle/left, chair 0.42 lower/center, person 0.41 middle/left, person 0.40 middle/left | 20.9°C, 37% humidity
+19:34:54 3 detection(s): person 0.60 middle/left, refrigerator 0.47 lower/right, chair 0.40 lower/center | 21°C, 38% humidity
+19:35:24 2 detection(s): person 0.54 middle/left, chair 0.46 lower/center | 21°C, 38% humidity
+19:35:54 1 detection(s): chair 0.47 lower/center | 20.9°C, 38% humidity
+19:36:24 1 detection(s): chair 0.43 lower/center | 20.9°C, 37% humidity
+19:36:54 1 detection(s): chair 0.44 lower/center | 21°C, 38% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:37:24 2 detection(s): refrigerator 0.50 lower/right, chair 0.46 lower/center | 21°C, 38% humidity
+19:37:54 2 detection(s): chair 0.42 lower/center, refrigerator 0.40 lower/right | 21°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:38:24 2 detection(s): person 0.55 middle/left, chair 0.47 lower/center | 21°C, 37% humidity
+19:38:54 2 detection(s): chair 0.49 lower/center, person 0.40 middle/left | 21°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:39:24 2 detection(s): refrigerator 0.49 lower/right, chair 0.44 lower/center | 21°C, 37% humidity
+Sensor read error: Checksum did not validate. Try again.; retrying (1/2)
+19:39:54 2 detection(s): person 0.54 middle/left, chair 0.45 lower/center | 21°C, 37% humidity
+19:40:24 3 detection(s): person 0.47 middle/left, refrigerator 0.46 lower/right, chair 0.41 lower/center | 21°C, 37% humidity
+19:40:54 2 detection(s): refrigerator 0.46 lower/right, chair 0.41 lower/center | 21°C, 37% humidity
+19:41:24 3 detection(s): refrigerator 0.51 lower/right, chair 0.44 lower/center, person 0.41 middle/left | 21°C, 37% humidity
+19:41:54 2 detection(s): chair 0.43 lower/center, refrigerator 0.41 lower/right | 21°C, 37% humidity
+19:42:24 1 detection(s): chair 0.47 lower/center | 20.9°C, 37% humidity
+19:42:54 1 detection(s): chair 0.45 lower/center | 20.9°C, 37% humidity
+19:43:24 1 detection(s): chair 0.40 lower/center | 20.9°C, 37% humidity
+19:43:54 2 detection(s): refrigerator 0.46 lower/right, chair 0.42 lower/center | 20.9°C, 37% humidity
+19:44:24 1 detection(s): chair 0.43 lower/center | 20.8°C, 37% humidity
+stopped: duration
+240 samples, 586 detections
+postcard figures: 41 layered frames across 41 sightings, from 586 detections. Nearby repeats share one caption. That is not the same individual.
+Paper texture unavailable (poetic surveillance/paper texture .jpg). Postcard uses a generated paper background.
+postcard: observations/20261101-174454/morning_postcard.png
+record log: observations/20261101-174454/morning_postcard_records.txt
+speculative notes: fresh

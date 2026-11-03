@@ -1,0 +1,30 @@
+{
+  "meta": {
+    "project": "night-window",
+    "id": "20261030-145757",
+    "started": "2026-10-30T14:57:57",
+    "ended": "2026-10-30T14:59:49",
+    "stopped": "interrupt",
+    "duration_s": 28800.0,
+    "interval_s": 300.0,
+    "camera": 0,
+    "model": "yolo26n_ncnn_model",
+    "imgsz": 320,
+    "conf": 0.4,
+    "all_classes": true,
+    "classes": [],
+    "frame_width": 640,
+    "frame_height": 480,
+    "samples": 1,
+    "detections": 0
+  },
+  "samples": [
+    {
+      "timestamp": "2026-10-30T14:57:57",
+      "detections": 0,
+      "frame_ok": true
+    }
+  ],
+  "detections": [],
+  "speculations": []
+}

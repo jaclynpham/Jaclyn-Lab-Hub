@@ -1,90 +1,69 @@
 # Poetic Surveillance
 
-The Pi watches a window, one still frame every few seconds. When the watch ends it writes one file, `observations/<timestamp>/morning_postcard.png`. The card is ASCII made from the masked crops, with the date, the observation period, and a short line beside each figure. If Ollama is running, that line is a guess from local Qwen and begins with `Qwen imagines:`. Those sentences are imagination, not verified facts.
+Poetic Surveillance asks how a machine interprets a human life. A camera at a window samples still frames. A detector finds objects, pulls each one off the background, and redraws it as colored ASCII on paper. Local Qwen then writes a short line about the crop. That line is a guess. The postcard is the machine's reading of the hour, not a record of what the hour was.
 
-Get consent from everyone in the household before a camera run. Point the camera away from beds and away from neighboring windows. Crops are deleted when the postcard has been written. Each session folder keeps only the PNG.
+## Part 2
 
-Run every command below from this folder, `Lab 5/poetic surveillance`.
+### Mockup
 
-## Setup
+The mockup sets out three ways the same watch could look. The left sheet separates figures and gives each one a time and a line. The middle sheet lets many frames pile up until the people, animals, and objects become one field. The right sheet leaves a figure inside a night photograph. The built cards follow the first two. The night photograph is the case the detector cannot yet make.
 
-Use the Lab 5 virtualenv if you already made one for Part A:
+![Poetic Surveillance mockup: separated figures, a dense pile, and ASCII over a night photograph](../Poetic%20Surveillance%20mockup.png)
+
+### First observations, without a humidity sensor
+
+[`night_window.py`](night_window.py) is the watch with no DHT11. It samples the camera, isolates each detected object, and writes one `morning_postcard.png` when the period ends. These October 28 cards are that version. The first still prints confidence and position. The later ones keep a time and, when Ollama answered, a line that begins `Qwen imagines:`.
+
+<p>
+  <img src="observations/20261028-192139/morning_postcard.png" alt="October 28, 7:21 PM postcard" width="220">
+  <img src="observations/20261028-221536/morning_postcard.png" alt="October 28, 10:15 PM postcard" width="220">
+  <img src="observations/20261028-222237/morning_postcard.png" alt="October 28, 10:22 PM postcard" width="220">
+  <img src="observations/20261028-223351/morning_postcard.png" alt="October 28, 10:33 PM postcard" width="220">
+</p>
+<p>
+  <img src="observations/20261028-223752/morning_postcard.png" alt="October 28, 10:37 PM postcard" width="220">
+  <img src="observations/20261028-223853/morning_postcard.png" alt="October 28, 10:38 PM postcard" width="220">
+  <img src="observations/20261028-223944/morning_postcard.png" alt="October 28, 10:39 PM postcard" width="220">
+  <img src="observations/20261028-224535/morning_postcard.png" alt="October 28, 10:45 PM postcard" width="220">
+</p>
+
+### Humidity as a stamp
+
+[`night_window_temp.py`](../night_window_temp.py) is the same watch with a DHT11 on GPIO D4, read once at each sample. Temperature chooses the color of a stamped band across the card, from violet near 15°C through blue, green, and yellow to red near 40°C. Humidity sets the height of that band. The ink is broken on purpose: uneven pressure, holes, and streaks, so the reading looks pressed into the paper rather than drawn as a chart.
+
+### Final postcard
+
+This card is one hour, 7:52 PM to 8:52 PM on October 29. Repeated frames of the same nearby figure are stacked in different colors, so an hour of one place becomes a single pile. Times and Qwen lines sit in the margins.
+
+![October 29 postcard, 7:52 PM to 8:52 PM](observations/20261029-195204/morning_postcard.png)
+
+### From a box to ASCII
+
+YOLO26n returns a rectangle and a class name. The rectangle is not a silhouette. Before any character is drawn, the crop is cut down to a foreground mask. The normal path is OpenCV GrabCut inside the padded box. A mask that still fills the box is rejected, and that crop is left off the card. The pixels that remain are turned into ASCII: denser, darker characters where the crop is darker, empty space where the background was. Nearby repeats of the same class share one caption and are drawn on top of each other, slightly shifted, up to six frames.
+
+### What Qwen is shown
+
+After the camera stops, a few isolated crops are sent to local Qwen (`qwen3.5:0.8b` through Ollama on this machine). Each request carries the crop image and the detector's metadata: class, time, confidence, and rough position. The prompt asks for one imaginative sentence and forbids treating that sentence as a fact, or guessing who someone is. The postcard prints the reply as `Qwen imagines:`. `--qwen-cap` limits how many crops are sent, because each image call is slow. If Ollama is down, the card is still written and the caption falls back to the class name.
+
+### Limit
+
+The postcard is a poor night observer. Object detection fails in the dark, so the mask cannot subtract the background and there is nothing solid to redraw as ASCII. The cards in this folder were made in daylight and in well-lit rooms.
+
+## Run
+
+Run these commands from `Lab 5/poetic surveillance`, in the Lab 5 virtualenv. Get consent from everyone in the household. Point the camera away from beds and away from neighboring windows.
 
 ```bash
 cd "Lab 5"
 source .venv/bin/activate
 cd "poetic surveillance"
-```
-
-Or make a venv here and install this folder's requirements. They match the Lab 5 list, plus Pillow for the postcard.
-
-```bash
-cd "Lab 5/poetic surveillance"
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-The detector is the Part A export, `yolo26n_ncnn_model`. Leave that folder in `Lab 5`. This program finds it there. If you still need to export it, do that once from `Lab 5`:
-
-```bash
-python -c "from ultralytics import YOLO; YOLO('yolo26n.pt').export(format='ncnn')"
-```
-
-Qwen is optional. It is not installed by `requirements.txt`. On the Pi, with [Ollama](https://ollama.com) already running:
-
-```bash
-ollama pull qwen3.5:0.8b
-```
-
-The program calls `http://localhost:11434` and the model `qwen3.5:0.8b`. If Ollama is down, pass `--skip-qwen`. The postcard and the ASCII are still written.
-
-## Run
-
-A short test is 15 seconds, with a frame about every 2 seconds. It does not open a camera window.
-
-```bash
-python night_window.py observe --headless
-```
-
-Five minutes:
-
-```bash
 python night_window.py observe --duration 300 --headless
 ```
 
-A longer night. Eight hours is 28800 seconds. A wider interval keeps the Pi cooler. Ctrl-C still writes the postcard from whatever was seen.
+`night_window.py` is the watch without the DHT11. Use `night_window_temp.py` from the `Lab 5` folder only when that sensor is connected. A plain SSH session stops when the laptop closes. Leave a long watch under `nohup` and read `nohup.out` later:
 
 ```bash
-tmux new -s night
-python night_window.py observe --duration 28800 --interval 20 --qwen-cap 3
+nohup python night_window.py observe --duration 28800 --interval 20 --qwen-cap 3 > night.log 2>&1 &
 ```
 
-`--show` is the only flag that opens a window, and it needs a display. Press `q` in that window, or Ctrl-C, to stop early.
-
-Other flags:
-
-```bash
-python night_window.py observe --duration 600 --classes bird,car,bus --skip-qwen
-python night_window.py observe --duration 600 --all
-python night_window.py observe --duration 60 --gesture --skip-qwen
-python night_window.py observe --duration 60 --seed 7 --skip-qwen
-```
-
-`--all` detects every COCO class. The default filter is person, bird, bus, car, and dog. `--gesture` looks for the Quiet Coyote pose from Part C, using `HandTrackingModule.py` in the parent Lab 5 folder. The timer and Ctrl-C work without it.
-
-`--qwen-cap` limits how many crops are sent to Ollama, because image calls are slow. Nearby repeats of the same class share one caption. Up to six of those frames are drawn on top of each other.
-
-## What gets saved
-
-Each session folder contains only `morning_postcard.png`, a portrait image, 1470 × 2108. The paper texture in this folder, `paper texture .jpg`, is washed in faintly. If that file is missing, the card uses a generated paper field.
-
-The top left has `DATE` and `OBSERVATION PERIOD`. Beside each figure, the time and description are smaller. There is no confidence, coordinate, count, legend, or footer. If nothing can be drawn, the card still finishes and says "No detections recorded".
-
-Do not pass `--seg-model` unless you mean to. The NCNN segmentation export can Bus-error on the Pi. The normal run isolates each crop with OpenCV GrabCut. A crop that still cannot be separated from its box is left off the card.
-
-## Tests
-
-```bash
-python -m unittest discover -s tests -q
-```
+The detector is `yolo26n_ncnn_model` in the parent `Lab 5` folder. Qwen is optional: `ollama pull qwen3.5:0.8b`. Pass `--skip-qwen` when Ollama is down. Each session folder keeps only `morning_postcard.png`.

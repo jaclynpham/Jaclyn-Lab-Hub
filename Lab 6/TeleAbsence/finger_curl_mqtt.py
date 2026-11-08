@@ -1,9 +1,10 @@
-"""Curl the string-driven finger from the live bend on IDD/djv/bend.
+"""Follow the live bend on IDD/djv/bend, once a second.
 
-Another Pi publishes a plain angle, several times a second, from 0 at rest
-up through the bend. This script waits out one bend, then curls to the
-deepest angle in it, holds for 10 seconds, and opens. A resting stream of
-0.0 does not move the servo. Angles above 90 are treated as a full curl.
+The other Pi publishes a plain angle. This script keeps the newest number
+and, once a second, moves the finger to it. The finger stays there until
+the next update. When the channel sends 0, the finger opens. That is the
+reset: there is no extra timer, because a 10 second hold would skip the
+updates that arrive while it waited.
 
 Broker, from the Lab 6 notes: farlab.infosci.cornell.edu port 1883,
 user idd, password device@theFarm.
@@ -12,7 +13,7 @@ user idd, password device@theFarm.
 """
 
 import json
-import queue
+import threading
 import time
 import uuid
 
@@ -27,7 +28,6 @@ except ImportError as exc:
 from finger_curl import (
     CURL_MAX,
     CURL_MIN,
-    HOLD_S,
     OPEN_DEG,
     Servo,
     parse_args,
@@ -40,13 +40,7 @@ MQTT_PORT = 1883
 MQTT_USERNAME = "idd"
 MQTT_PASSWORD = "device@theFarm"
 MQTT_TOPIC = "IDD/djv/bend"
-
-# Below this, the finger on the other Pi counts as open.
-REST_DEG = 5.0
-# A bend that stays inside this band for STABLE_S is the pose to copy,
-# even if they never let the finger open again.
-STABLE_BAND = 2.0
-STABLE_S = 1.0
+LISTEN_S = 1.0
 
 
 def read_number(text):
@@ -73,56 +67,27 @@ def read_number(text):
     return None
 
 
-class BendWatch:
-    """Turn the live stream into one curl command per bend."""
+class Latest:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.value = None
 
-    def __init__(self, curls):
-        self.curls = curls
-        self.peak = 0.0
-        self.holding = False
-        self.anchor = None
-        self.anchor_at = None
+    def set(self, value):
+        with self._lock:
+            self.value = value
 
-    def sample(self, value):
-        value = min(CURL_MAX, max(CURL_MIN, value))
-        if value <= REST_DEG:
-            if self.peak > REST_DEG and not self.holding:
-                self._commit(self.peak)
-            elif self.holding:
-                self.holding = False
-            self.peak = 0.0
-            self.anchor = None
-            return
-        if self.holding:
-            return
-        if self.peak <= REST_DEG:
-            print(f"Bend started at {value:.0f}°.")
-        self.peak = max(self.peak, value)
-        now = time.monotonic()
-        if self.anchor is None or abs(value - self.anchor) > STABLE_BAND:
-            self.anchor = value
-            self.anchor_at = now
-            return
-        if now - self.anchor_at >= STABLE_S:
-            self._commit(self.peak)
-
-    def _commit(self, curl):
-        print(f"Bend settled at {curl:.0f}°.")
-        self.curls.put(curl)
-        self.holding = True
-        self.peak = 0.0
-        self.anchor = None
+    def get(self):
+        with self._lock:
+            return self.value
 
 
-def listen(curls):
-    watch = BendWatch(curls)
-
+def listen(latest):
     def on_connect(client, userdata, flags, rc):
         if rc != 0:
             print(f"MQTT refused the connection (code {rc}).")
             return
         client.subscribe(MQTT_TOPIC)
-        print(f"Listening on {MQTT_TOPIC}.")
+        print(f"Listening on {MQTT_TOPIC}, updating every {LISTEN_S:.0f}s.")
 
     def on_message(client, userdata, msg):
         text = msg.payload.decode("utf-8", errors="replace")
@@ -130,7 +95,7 @@ def listen(curls):
         if value is None:
             print(f"Ignored {text.strip()!r}. Expected a number.")
             return
-        watch.sample(value)
+        latest.set(min(CURL_MAX, max(CURL_MIN, value)))
 
     client = mqtt.Client(str(uuid.uuid1()))
     client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
@@ -150,31 +115,41 @@ def listen(curls):
 
 def main():
     args = parse_args()
+    # A full curl has to finish inside one listen interval.
+    args.step_s = min(args.step_s, LISTEN_S / CURL_MAX)
     direction = "down" if args.reverse else "up"
     print(
         f"Finger on pHAT channel {args.channel}, topic {MQTT_TOPIC}. "
         f"0 is open at {OPEN_DEG:.0f}°. "
-        f"90 curls {CURL_MAX:.0f}° {direction} the servo scale, "
-        f"holds {HOLD_S:.0f}s, then opens."
+        f"90 curls {CURL_MAX:.0f}° {direction} the servo scale. "
+        f"The finger matches the channel once a second and opens when it sends 0."
     )
     print("The pHAT needs its own USB-C cable for servo power.")
-    curls = queue.Queue()
-    client = listen(curls)
+    latest = Latest()
+    client = listen(latest)
     servo = Servo(args)
+    shown = None
     try:
         servo.move_to(servo_angle(0.0, args.reverse))
         print(f"Open. Servo {servo.angle:.0f}°.")
+        next_tick = time.monotonic()
         while True:
-            curl = curls.get()
+            now = time.monotonic()
+            if now < next_tick:
+                time.sleep(next_tick - now)
+            next_tick = time.monotonic() + LISTEN_S
+            curl = latest.get()
+            if curl is None or (shown is not None and abs(curl - shown) < 1.0):
+                continue
             servo.move_to(servo_angle(curl, args.reverse))
-            print(
-                f"Curl {curl:.0f}°   servo {servo.angle:.0f}°   "
-                f"pulse {pulse_for(servo.angle, args):.0f} µs   "
-                f"holding {HOLD_S:.0f}s"
-            )
-            time.sleep(HOLD_S)
-            servo.move_to(servo_angle(0.0, args.reverse))
-            print(f"Open. Servo {servo.angle:.0f}°.")
+            shown = curl
+            if curl < 1.0:
+                print(f"Channel {curl:.0f}°. Open, horn at {servo.angle:.0f}°.")
+            else:
+                print(
+                    f"Channel {curl:.0f}°. Rotating {curl:.0f}° from open, "
+                    f"horn at {servo.angle:.0f}°."
+                )
     except KeyboardInterrupt:
         print("\nOpening, then stopping the pulse.")
         servo.move_to(servo_angle(0.0, args.reverse))

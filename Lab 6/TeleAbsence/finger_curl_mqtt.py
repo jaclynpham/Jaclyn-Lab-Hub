@@ -1,17 +1,14 @@
-"""Curl the string-driven finger from a number another Pi publishes on MQTT.
+"""Curl the string-driven finger from the live bend on IDD/djv/bend.
 
-Same motion as finger_curl.py: 0 is open, 90 is a 90 degree pull, the pose
-holds for 10 seconds, then the finger opens. Paste the topic when asked.
-The other Pi publishes a plain number on that topic, for example 45.
+Another Pi publishes a plain angle, several times a second, from 0 at rest
+up through the bend. This script waits out one bend, then curls to the
+deepest angle in it, holds for 10 seconds, and opens. A resting stream of
+0.0 does not move the servo. Angles above 90 are treated as a full curl.
 
 Broker, from the Lab 6 notes: farlab.infosci.cornell.edu port 1883,
-user idd, password device@theFarm. Topics on that broker start with IDD/.
+user idd, password device@theFarm.
 
   python finger_curl_mqtt.py --channel 0
-
-The other Pi can send a curl with:
-
-  mosquitto_pub -h farlab.infosci.cornell.edu -p 1883 -t 'IDD/yourteam/finger' -m '45' -u idd -P 'device@theFarm'
 """
 
 import json
@@ -42,18 +39,14 @@ MQTT_BROKER = "farlab.infosci.cornell.edu"
 MQTT_PORT = 1883
 MQTT_USERNAME = "idd"
 MQTT_PASSWORD = "device@theFarm"
+MQTT_TOPIC = "IDD/djv/bend"
 
-
-def ask_topic():
-    while True:
-        typed = input("MQTT topic (paste the channel): ").strip()
-        if not typed:
-            print("Paste a topic, for example IDD/yourteam/finger.")
-            continue
-        if not typed.startswith("IDD/"):
-            print("This broker only delivers topics that start with IDD/.")
-            continue
-        return typed
+# Below this, the finger on the other Pi counts as open.
+REST_DEG = 5.0
+# A bend that stays inside this band for STABLE_S is the pose to copy,
+# even if they never let the finger open again.
+STABLE_BAND = 2.0
+STABLE_S = 1.0
 
 
 def read_number(text):
@@ -71,7 +64,7 @@ def read_number(text):
     if isinstance(payload, (int, float)) and not isinstance(payload, bool):
         return float(payload)
     if isinstance(payload, dict):
-        for key in ("curl", "angle", "value", "degree", "degrees"):
+        for key in ("curl", "angle", "value", "degree", "degrees", "bend"):
             if key in payload:
                 try:
                     return float(payload[key])
@@ -80,13 +73,56 @@ def read_number(text):
     return None
 
 
-def listen(topic, curls):
+class BendWatch:
+    """Turn the live stream into one curl command per bend."""
+
+    def __init__(self, curls):
+        self.curls = curls
+        self.peak = 0.0
+        self.holding = False
+        self.anchor = None
+        self.anchor_at = None
+
+    def sample(self, value):
+        value = min(CURL_MAX, max(CURL_MIN, value))
+        if value <= REST_DEG:
+            if self.peak > REST_DEG and not self.holding:
+                self._commit(self.peak)
+            elif self.holding:
+                self.holding = False
+            self.peak = 0.0
+            self.anchor = None
+            return
+        if self.holding:
+            return
+        if self.peak <= REST_DEG:
+            print(f"Bend started at {value:.0f}°.")
+        self.peak = max(self.peak, value)
+        now = time.monotonic()
+        if self.anchor is None or abs(value - self.anchor) > STABLE_BAND:
+            self.anchor = value
+            self.anchor_at = now
+            return
+        if now - self.anchor_at >= STABLE_S:
+            self._commit(self.peak)
+
+    def _commit(self, curl):
+        print(f"Bend settled at {curl:.0f}°.")
+        self.curls.put(curl)
+        self.holding = True
+        self.peak = 0.0
+        self.anchor = None
+
+
+def listen(curls):
+    watch = BendWatch(curls)
+
     def on_connect(client, userdata, flags, rc):
         if rc != 0:
             print(f"MQTT refused the connection (code {rc}).")
             return
-        client.subscribe(topic)
-        print(f"Listening on {topic}. Waiting for a number from {CURL_MIN:.0f} to {CURL_MAX:.0f}.")
+        client.subscribe(MQTT_TOPIC)
+        print(f"Listening on {MQTT_TOPIC}.")
 
     def on_message(client, userdata, msg):
         text = msg.payload.decode("utf-8", errors="replace")
@@ -94,11 +130,7 @@ def listen(topic, curls):
         if value is None:
             print(f"Ignored {text.strip()!r}. Expected a number.")
             return
-        if value < CURL_MIN or value > CURL_MAX:
-            print(f"Ignored {value:.0f}. Curl stays between {CURL_MIN:.0f} and {CURL_MAX:.0f}.")
-            return
-        print(f"Heard {value:.0f} on {msg.topic}")
-        curls.put(value)
+        watch.sample(value)
 
     client = mqtt.Client(str(uuid.uuid1()))
     client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
@@ -118,17 +150,16 @@ def listen(topic, curls):
 
 def main():
     args = parse_args()
-    topic = ask_topic()
     direction = "down" if args.reverse else "up"
     print(
-        f"Finger on pHAT channel {args.channel}. "
+        f"Finger on pHAT channel {args.channel}, topic {MQTT_TOPIC}. "
         f"0 is open at {OPEN_DEG:.0f}°. "
         f"90 curls {CURL_MAX:.0f}° {direction} the servo scale, "
         f"holds {HOLD_S:.0f}s, then opens."
     )
     print("The pHAT needs its own USB-C cable for servo power.")
     curls = queue.Queue()
-    client = listen(topic, curls)
+    client = listen(curls)
     servo = Servo(args)
     try:
         servo.move_to(servo_angle(0.0, args.reverse))

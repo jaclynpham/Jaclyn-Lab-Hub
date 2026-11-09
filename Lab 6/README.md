@@ -4,15 +4,15 @@
 
 **Members:** Jaclyn Pham (cqp4), Demi Hu (dh785), Vasudha Devkota (vd269)
 
-<iframe width="720" height="405" src="https://www.youtube.com/embed/xix3lFBBjuw" title="TeleAbsence, the finished piece" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+[![TeleAbsence, the finished piece](teleabsence-video.jpg)](https://www.youtube.com/watch?v=xix3lFBBjuw)
 
 [Watch the finished piece](https://www.youtube.com/watch?v=xix3lFBBjuw)
 
 ## The piece
 
-TeleAbsence lets two people share a touch when they are not in the same place. One person squeezes a soft glove. A bend sensor on that glove reads how far the hand closes and sends the number to a second Raspberry Pi. A servo on that Pi pulls strings in another hand, and those fingers curl into a squeeze. A third Pi gets a short note, so the person who reached out can see that the touch arrived.
+TeleAbsence lets two people share a touch when they are not in the same place. One person squeezes a soft glove. A bend sensor on that glove reads how far the hand closes and sends the number to a second Raspberry Pi. A servo on that Pi pulls strings in another hand, and those fingers curl into a squeeze. A third Pi shows the receiver a note: "Demi sent you a hand squeeze."
 
-The squeeze matches the bend. The glove sends a number from 0 to 180. The other hand turns to that same angle. A small bend makes a small curl. A deep bend pulls the strings as far as the servo can go. Letting go sends 0, the strings loosen, and the hand opens. Any number above 0 makes the servo Pi send `IN PROGRESS` on `IDD/djv/text`. A 0 sends `STOP`. In the storyboard, that note shows up on a watch. In the build, it is a message the third Pi can display, and the broker keeps the latest one so the note is still there if that Pi connects late.
+The squeeze matches the bend. The glove sends a number from 0 to 180. The other hand turns to that same angle. A small bend makes a small curl. A deep bend pulls the strings as far as the servo can go. Letting go sends 0, the strings loosen, and the hand opens. Any number above 0 makes the servo Pi send `IN PROGRESS` on `IDD/djv/text`. A 0 sends `STOP`. Pi 3 listens to that channel. While the message is `IN PROGRESS`, its screen tells the receiver, "Demi sent you a hand squeeze." `STOP` clears the note. The broker keeps the latest message, so the screen is still right if Pi 3 connects late.
 
 The idea comes from [TeleAbsence](https://tangible.media.mit.edu/project/teleabsence/) at the MIT Tangible Media Group: two people share a gesture when they cannot be in the same room. The hands are a [Flexy Hand](https://youtu.be/Z70YWNuOB8E?si=lgnRUYCbhTde_MYc). The string path through the fingers comes from [Xstrings](https://hcie.csail.mit.edu/research/xstrings/xstrings.html), MIT research on running one string through a printed part so a pull becomes a curl.
 
@@ -20,7 +20,7 @@ The idea comes from [TeleAbsence](https://tangible.media.mit.edu/project/teleabs
 
 <img src="storyboard.jpeg" alt="Five-panel storyboard of A and B sharing a squeeze across distance" width="720">
 
-A and B are far apart, still on the phone. A squeezes his robot hand. B's robot hand copies the curl. If she is away from that hand, her watch still gets a note. In the drawing it says "Love from A!" In the last panel she feels A's hand holding hers. That last moment is the whole idea. The watch text we actually send is shorter: `IN PROGRESS` while the hand is curling, and `STOP` when it opens.
+A and B are far apart, still on the phone. A squeezes his robot hand. B's robot hand copies the curl. If she is away from that hand, her watch still gets a note. In the drawing it says "Love from A!" On Pi 3 the note says "Demi sent you a hand squeeze." In the last panel she feels A's hand holding hers. That last moment is the whole idea.
 
 ## Making the hand
 
@@ -104,7 +104,7 @@ flowchart LR
     Script --> Servo --> Hand
   end
   subgraph notice [Pi 3: output]
-    Note[Shows IN PROGRESS or STOP]
+    Note["Demi sent you a hand squeeze"]
   end
   Flex -->|"degrees, 0 to 180"| Bend --> Script
   Script -->|"IN PROGRESS or STOP"| Text --> Note
@@ -114,11 +114,11 @@ flowchart LR
 | --- | --- | --- | --- |
 | 1 | Input | Soft glove and bend sensor | Sends the bend on `IDD/djv/bend` |
 | 2 | Computation and output | Raspberry Pi, SparkFun Servo pHAT, SG-5010, strings through the printed fingers | Listens to `IDD/djv/bend`. Sends `IDD/djv/text` |
-| 3 | Output | A screen that shows the note | Listens to `IDD/djv/text` |
+| 3 | Output | A screen that tells the receiver, "Demi sent you a hand squeeze" | Listens to `IDD/djv/text` |
 
 The number on `IDD/djv/bend` is how far the servo horn should turn. `0` means open. `180` is a full turn, which is as far as this servo can pull the strings. The glove sends new numbers many times a second, faster than the servo should keep jumping, so Pi 2 uses the newest number and moves once a second.
 
-The note is written by the servo Pi, the one actually pulling the strings. Any angle above 0 means that Pi is turning the horn. Zero means the hand went back to open and the horn was sent home. We do not have a second sensor on the receiving fingers to check that they touched a person. `IN PROGRESS` means the number arrived and the servo was told to pull. The broker saves the last message, so Pi 3 still sees it if it connects while the hand is already closed.
+The note is written by the servo Pi, the one actually pulling the strings. Any angle above 0 means that Pi is turning the horn. Zero means the hand went back to open and the horn was sent home. We do not have a second sensor on the receiving fingers to check that they touched a person. `IN PROGRESS` means the number arrived and the servo was told to pull. Pi 3 turns that into the line the receiver reads: "Demi sent you a hand squeeze." The broker saves the last message, so the screen still shows it if Pi 3 connects while the hand is already closed.
 
 ```120:128:Lab 6/TeleAbsence/finger_curl_mqtt.py
 def status_for(degrees):
@@ -137,19 +137,21 @@ def publish_status(client, status):
 | Topic | Who publishes | Payload | Meaning |
 | --- | --- | --- | --- |
 | `IDD/djv/bend` | The glove Pi | A number from 0 to 180, such as `0.0` or `78.9` | How far the sending hand is bent |
-| `IDD/djv/text` | The servo Pi | `IN PROGRESS` or `STOP` | Whether the other hand is being pulled |
+| `IDD/djv/text` | The servo Pi | `IN PROGRESS` or `STOP` | Pi 3 shows "Demi sent you a hand squeeze" on `IN PROGRESS`, and clears it on `STOP` |
 
 Capital letters matter. `IDD/djv/bend` is our channel. `IDD/DJV/bend` is a different channel, and it stays empty.
 
 ## What the build taught us
 
-The person who squeezes does not see the other hand. They get the short note. The person with the other hand feels the strings and does not need a screen. That split is the project.
+The person who squeezes does not see the other hand. The receiver feels the strings, and Pi 3 tells them, "Demi sent you a hand squeeze." That split is the project.
 
 The glove sends a new angle many times a second. If we held each number for 10 seconds, we would miss the rest of the squeeze. The script that runs in the piece takes the newest angle once a second and stays there until the next one. The hand opens when the channel sends 0. The 10-second hold is only in `servo_sg5010_curl.py`, the test where someone types one number at a time.
 
+The hardest part was getting the finger to move with the pressure. A light squeeze should make a small curl, and a firm squeeze should close the hand further. We got there by tying the string to a servo horn and turning the horn by the same number of degrees the glove sent. That works, and it is also fussy. The second set of fingers looks much more like a real hand, but those pieces are heavier, and they do not curl as well as the first ones.
+
 This servo can turn about halfway around, and then it stops. It cannot wind the string for several full turns. One horn pulls every finger we tied on, so the hand closes all at once. The Servo pHAT also needs its own USB-C cable for the motor. Without that cable the board still shows up on I2C at `0x40`, and the servo does not move.
 
-Next time we would add a sensor on the receiving fingers, so `IN PROGRESS` and `STOP` meant someone was actually touching the hand, not only that the servo had been told to move. A servo on each finger would let the squeeze pick out one finger. The watch text in the drawing, "Love from A!", is warmer than the two words we send. Those two words are the note a third Pi can trust.
+Next time we will try another material, and a different way of making the joints, so the fingers weigh less and bend more easily. The drawing says "Love from A!" Pi 3 says it in plain words: "Demi sent you a hand squeeze."
 
 ## Outside the team
 
@@ -187,7 +189,7 @@ mosquitto_pub -h farlab.infosci.cornell.edu -p 1883 -t 'IDD/djv/bend' -m '45' -u
 
 `45` turns the horn to 45° and sends `IN PROGRESS`. A later `0` opens the hand and sends `STOP`. The real glove should keep sending the angle it is reading.
 
-On the notification Pi:
+On the notification Pi, `IN PROGRESS` is shown to the receiver as "Demi sent you a hand squeeze." `STOP` clears it. To watch the channel itself:
 
 ```bash
 mosquitto_sub -h farlab.infosci.cornell.edu -p 1883 -t 'IDD/djv/text' -u idd -P 'device@theFarm'

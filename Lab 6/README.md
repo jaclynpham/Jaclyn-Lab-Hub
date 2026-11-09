@@ -1,5 +1,166 @@
 # Distributed Interaction
 
+**Team:** Jaclyn Pham, Demi Hu, Vasudha Devkota
+
+**Members:** Jaclyn Pham (cqp4), Demi Hu (dh785), Vasudha Devkota (vd269)
+
+**Project name:** TeleAbsence
+
+## Project description
+
+TeleAbsence is a networked artwork about communicating care across distance through touch. When someone presses one soft robotic hand, its pressure sensor sends the signal over MQTT to a second Raspberry Pi. A servo on that Pi pulls strings attached to the fingers of another soft hand, creating a gentle squeeze. A third Pi receives confirmation that the action completed and displays a brief notification, letting the sender know their touch arrived. The project turns a small physical gesture into a tactile message, and makes its arrival visible.
+
+The squeeze is not a single on/off pinch. The first hand publishes how far it is bent, as a number from 0 to 180. The second hand turns its servo to that same angle, so a light press is a small curl and a firm press is a deeper one. Letting go sends 0, the strings slack, and the receiving hand opens. While the angle is anything other than 0, the second Pi tells the third Pi `IN PROGRESS`. At 0 it sends `STOP`. The sender sees that the touch landed, and sees when it ended.
+
+## Architecture
+
+Three Pis share one broker, `farlab.infosci.cornell.edu:1883`. Each machine does one job.
+
+```mermaid
+flowchart LR
+  subgraph input [Pi 1: input]
+    HandA[Soft hand being pressed]
+    Sensor[Pressure sensor]
+    HandA --> Sensor
+  end
+  subgraph broker [Class MQTT broker]
+    Bend["IDD/djv/bend"]
+    Text["IDD/djv/text"]
+  end
+  subgraph action [Pi 2: computation and output]
+    Script[servo_sg5010_mqtt.py]
+    Servo[SG-5010 on the Servo pHAT]
+    HandB[Soft hand, strings on the fingers]
+    Script --> Servo --> HandB
+  end
+  subgraph notice [Pi 3: output]
+    Note[Shows IN PROGRESS or STOP]
+  end
+  Sensor -->|"plain number, 0 to 180"| Bend --> Script
+  Script -->|"IN PROGRESS or STOP"| Text --> Note
+```
+
+| Pi | Role | Hardware | MQTT |
+| --- | --- | --- | --- |
+| 1 | Input | Soft hand and pressure sensor | Publishes a bend angle on `IDD/djv/bend` |
+| 2 | Computation and output | Raspberry Pi, SparkFun Servo pHAT, TowerPro SG-5010, strings to a second soft hand | Subscribes to `IDD/djv/bend`. Publishes `IDD/djv/text` |
+| 3 | Output | Screen for a short notice | Subscribes to `IDD/djv/text` |
+
+The number on `IDD/djv/bend` is the horn angle in degrees. `0` is open. `180` is a full turn of the SG-5010, which is as far as that servo can pull the strings. Pi 2 keeps the newest sample and moves once a second, because the sensor stream arrives faster than the servo can usefully retarget.
+
+`IN PROGRESS` and `STOP` are retained. The broker keeps the last one, so Pi 3 still learns the current state if it connects while a squeeze is already happening.
+
+## Build
+
+### Wiring on the hand that squeezes
+
+The SG-5010 plugs into a numbered header on the SparkFun Servo pHAT. The script does not guess the header. Pass it as `--channel`.
+
+The Pi has its own USB-C supply. The pHAT has a second USB-C jack, and that jack powers the servo. The PCA9685 still answers on I2C at `0x40` when the servo cable is missing, so `i2cdetect` can look fine while the motor has no power and does not move. Do not power the SG-5010 from a Pi GPIO pin or the Pi 5 V rail.
+
+An SG-5010 expects about 500 µs at 0° and 2500 µs at 180°. `servo_sg5010_mqtt.py` uses that window. If the horn buzzes against a physical stop, narrow it with `--min-us` and `--max-us` and stop the run.
+
+### Run it
+
+On the Pi with the servo, from this folder, with the virtualenv that has `adafruit-circuitpython-servokit` and `paho-mqtt`:
+
+```bash
+cd "Lab 6/TeleAbsence"
+python servo_sg5010_mqtt.py --channel 0
+```
+
+Use the header number printed next to the plug. Channel 0 above is only an example.
+
+To turn the horn by hand before the other Pis are connected:
+
+```bash
+python servo_sg5010_curl.py --channel 0
+```
+
+Type a number from 0 to 180. The horn holds that angle for 10 seconds, then returns to 0. `q` releases the pulse. This local test is the same motion as the networked script, without MQTT.
+
+On the Pi with the pressure sensor, publish a plain number on the bend topic. The class broker login is the one from the lab:
+
+```bash
+mosquitto_pub -h farlab.infosci.cornell.edu -p 1883 -t 'IDD/djv/bend' -m '45' -u idd -P 'device@theFarm'
+```
+
+`45` turns the horn to 45° and publishes `IN PROGRESS`. A later message of `0` opens the hand and publishes `STOP`. The live sensor should keep publishing the current angle. This Pi samples the newest value once a second.
+
+On the notification Pi, subscribe and show whatever arrives:
+
+```bash
+mosquitto_sub -h farlab.infosci.cornell.edu -p 1883 -t 'IDD/djv/text' -u idd -P 'device@theFarm'
+```
+
+Topics are case-sensitive. `IDD/djv/bend` is the channel this project uses. `IDD/DJV/bend` is a different topic and stays empty.
+
+### MQTT topics
+
+| Topic | Publisher | Payload | Meaning |
+| --- | --- | --- | --- |
+| `IDD/djv/bend` | Pressure-sensor Pi | A number from 0 to 180, such as `0.0` or `78.9` | How far the sending hand is bent |
+| `IDD/djv/text` | Servo Pi | `IN PROGRESS` or `STOP` | Whether the receiving hand is being pulled |
+
+### What the servo Pi does with a message
+
+The decision is on the Pi that moves the hand, because that is where a bend becomes a pull. There is no language model. A non-zero angle means the strings are being drawn. Zero means they have been released.
+
+```120:128:Lab 6/TeleAbsence/finger_curl_mqtt.py
+def status_for(degrees):
+    if degrees == 0:
+        return STOP
+    return IN_PROGRESS
+
+
+def publish_status(client, status):
+    client.publish(TEXT_TOPIC, status, retain=True)
+    print(f"Sent {status} on {TEXT_TOPIC}.")
+```
+
+`servo_sg5010_mqtt.py` uses that rule and swaps in the SG-5010 pulse range, 500 µs to 2500 µs, so a command of 180° is a full turn of this servo rather than a short move inside a narrower window.
+
+### Photos
+
+Photographs of the three setups are not in the repo yet. The build record still needs:
+
+- The sending hand and the pressure sensor on Pi 1
+- The Servo pHAT, the SG-5010, and the strings on the receiving hand
+- The notification on Pi 3, showing `IN PROGRESS` and then `STOP`
+
+## User testing
+
+The lab asks for two people who are not on the team. Those sessions are not written up in the repo yet. Each session should record what they thought the two hands would do before they pressed, what surprised them, and what they would change. A photo or a short video of each person using it belongs with those notes.
+
+What the piece is set up to show them: a press in one place becomes a squeeze in another, and a line of text is the only proof the touch arrived. The questions worth asking are whether the squeeze felt like a reply, whether `IN PROGRESS` was enough to trust that it had happened, and whether the delay of sampling once a second made the touch feel late.
+
+## Reflection
+
+The split across three machines is what makes the care feel sent rather than local. The person who presses never sees the other hand. They only get the notice. The person at the receiving hand feels the strings and does not have to watch a screen. The third Pi is the receipt.
+
+Following the sensor live, and also holding one pose for a fixed time, do not fit together. `IDD/djv/bend` publishes a new angle many times a second. Holding each sample for 10 seconds would ignore the rest of the gesture. The networked script takes the newest angle once a second and stays there until the next one. The hand opens when the channel sends 0, which is the other person letting go. The 10-second hold remains only in `servo_sg5010_curl.py`, where a person is typing one number at a time.
+
+The servo cannot wind the string for several full turns. It is a positional SG-5010, so 180° is the whole pull. Early tests also moved less than the number we sent, because a pulse window of 1100–1900 µs never reaches the ends of this servo's travel. The SG-5010 script maps 0° to 500 µs and 180° to 2500 µs. The pHAT still has to be powered on its own USB-C jack. A signal with no motor power looks, on I2C, exactly like a working board.
+
+The status message is computed on the servo Pi, not on the sensor Pi. `IN PROGRESS` means this Pi has been told to pull and is driving the horn. `STOP` means the bend came back to 0 and the horn was sent home. It is not a second sensor on the receiving fingers confirming that skin made contact. That is the limit of the receipt: the sender learns that the command arrived and was acted on.
+
+Nothing in the loop is a model. The rule is the two sentences above, and it runs on every accepted sample on the Pi that owns the servo. Putting it there keeps the notification tied to the actuator. A message published by the sensor Pi would fire even if the servo Pi were unplugged.
+
+## Files
+
+| File | What it is |
+| --- | --- |
+| `TeleAbsence/servo_sg5010_mqtt.py` | The piece that runs during the work. Bend in, SG-5010 moves, status out. |
+| `TeleAbsence/finger_curl_mqtt.py` | Same MQTT behavior, with the narrower pulse window used before the SG-5010 range. |
+| `TeleAbsence/servo_sg5010_curl.py` | Typed angle, 0 to 180. Holds 10 seconds, then returns to 0. |
+| `TeleAbsence/finger_curl.py` | Same typed test for a 0 to 90 curl, starting from a parked open pose at 45°. |
+| `TeleAbsence/servo_sg5010_test.py` | Keyboard check of one header: left, right, center, and a small sweep. |
+
+<details>
+<summary>Lab instructions (click to expand)</summary>
+
+# Distributed Interaction
+
 **NAMES OF COLLABORATORS HERE**
 
 For submission, replace this section with your documentation!
@@ -307,3 +468,6 @@ Before submitting:
 ---
 
 Resources: [MQTT Guide](https://www.hivemq.com/mqtt-essentials/) | [Paho Python](https://www.eclipse.org/paho/index.php?page=clients/python/docs/index.php) | [Flask-SocketIO](https://flask-socketio.readthedocs.io/)
+
+
+</details>

@@ -1,10 +1,12 @@
 """Follow the live bend on IDD/djv/bend, once a second.
 
-The other Pi publishes a plain angle. This script keeps the newest number
-and, once a second, moves the finger to it. The finger stays there until
-the next update. When the channel sends 0, the finger opens. That is the
-reset: there is no extra timer, because a 10 second hold would skip the
-updates that arrive while it waited.
+The number on that channel is the horn angle, from 0 to 180. This script
+keeps the newest number and moves the servo there once a second. 0 is the
+start of the travel and 180 is a full turn.
+
+Each time that number is not 0, it publishes IN PROGRESS on IDD/djv/text.
+When the number is 0, it publishes STOP. The other Pi only receives those
+messages.
 
 Broker, from the Lab 6 notes: farlab.infosci.cornell.edu port 1883,
 user idd, password device@theFarm.
@@ -25,22 +27,18 @@ except ImportError as exc:
         "  python -m pip install 'paho-mqtt<2.0'"
     ) from exc
 
-from finger_curl import (
-    CURL_MAX,
-    CURL_MIN,
-    OPEN_DEG,
-    Servo,
-    parse_args,
-    pulse_for,
-    servo_angle,
-)
+from finger_curl import Servo, parse_args
 
 MQTT_BROKER = "farlab.infosci.cornell.edu"
 MQTT_PORT = 1883
 MQTT_USERNAME = "idd"
 MQTT_PASSWORD = "device@theFarm"
 MQTT_TOPIC = "IDD/djv/bend"
+TEXT_TOPIC = "IDD/djv/text"
 LISTEN_S = 1.0
+ROTATION_MAX = 180.0
+IN_PROGRESS = "IN PROGRESS"
+STOP = "STOP"
 
 
 def read_number(text):
@@ -95,7 +93,7 @@ def listen(latest):
         if value is None:
             print(f"Ignored {text.strip()!r}. Expected a number.")
             return
-        latest.set(min(CURL_MAX, max(CURL_MIN, value)))
+        latest.set(min(ROTATION_MAX, max(0.0, value)))
 
     client = mqtt.Client(str(uuid.uuid1()))
     client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
@@ -113,46 +111,68 @@ def listen(latest):
     return client
 
 
+def horn_angle(degrees, reverse):
+    if reverse:
+        return ROTATION_MAX - degrees
+    return degrees
+
+
+def status_for(degrees):
+    if degrees == 0:
+        return STOP
+    return IN_PROGRESS
+
+
+def publish_status(client, status):
+    client.publish(TEXT_TOPIC, status, retain=True)
+    print(f"Sent {status} on {TEXT_TOPIC}.")
+
+
 def main():
     args = parse_args()
-    # A full curl has to finish inside one listen interval.
-    args.step_s = min(args.step_s, LISTEN_S / CURL_MAX)
-    direction = "down" if args.reverse else "up"
+    # A full 180° turn has to finish inside one listen interval.
+    args.step_s = min(args.step_s, LISTEN_S / ROTATION_MAX)
     print(
         f"Finger on pHAT channel {args.channel}, topic {MQTT_TOPIC}. "
-        f"0 is open at {OPEN_DEG:.0f}°. "
-        f"90 curls {CURL_MAX:.0f}° {direction} the servo scale. "
-        f"The finger matches the channel once a second and opens when it sends 0."
+        f"The channel number is the horn angle, from 0 to {ROTATION_MAX:.0f}. "
+        f"Status goes to {TEXT_TOPIC}."
     )
     print("The pHAT needs its own USB-C cable for servo power.")
     latest = Latest()
     client = listen(latest)
     servo = Servo(args)
     shown = None
+    sent = None
     try:
-        servo.move_to(servo_angle(0.0, args.reverse))
-        print(f"Open. Servo {servo.angle:.0f}°.")
+        servo.move_to(horn_angle(0.0, args.reverse))
+        print(f"Horn at {servo.angle:.0f}°.")
         next_tick = time.monotonic()
         while True:
             now = time.monotonic()
             if now < next_tick:
                 time.sleep(next_tick - now)
             next_tick = time.monotonic() + LISTEN_S
-            curl = latest.get()
-            if curl is None or (shown is not None and abs(curl - shown) < 1.0):
+            degrees = latest.get()
+            if degrees is None:
                 continue
-            servo.move_to(servo_angle(curl, args.reverse))
-            shown = curl
-            if curl < 1.0:
-                print(f"Channel {curl:.0f}°. Open, horn at {servo.angle:.0f}°.")
-            else:
-                print(
-                    f"Channel {curl:.0f}°. Rotating {curl:.0f}° from open, "
-                    f"horn at {servo.angle:.0f}°."
-                )
+            if (
+                shown is not None
+                and abs(degrees - shown) < 1.0
+                and status_for(degrees) == status_for(shown)
+            ):
+                continue
+            servo.move_to(horn_angle(degrees, args.reverse))
+            shown = degrees
+            print(f"Channel {degrees:.0f}°. Horn at {servo.angle:.0f}°.")
+            status = status_for(degrees)
+            if status != sent:
+                publish_status(client, status)
+                sent = status
     except KeyboardInterrupt:
         print("\nOpening, then stopping the pulse.")
-        servo.move_to(servo_angle(0.0, args.reverse))
+        servo.move_to(horn_angle(0.0, args.reverse))
+        if sent != STOP:
+            publish_status(client, STOP)
     finally:
         client.loop_stop()
         client.disconnect()

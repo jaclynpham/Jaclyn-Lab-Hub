@@ -147,11 +147,11 @@ The person who squeezes does not see the other hand. The receiver feels the stri
 
 The glove sends a new angle many times a second. If we held each number for 10 seconds, we would miss the rest of the squeeze. The script that runs in the piece takes the newest angle once a second and stays there until the next one. The hand opens when the channel sends 0. The 10-second hold is only in `servo_sg5010_curl.py`, the test where someone types one number at a time.
 
-The hardest part was getting the finger to move with the pressure. A light squeeze should make a small curl, and a firm squeeze should close the hand further. We got there by tying the string to a servo horn and turning the horn by the same number of degrees the glove sent. That works, and it is also fussy. The second set of fingers looks much more like a real hand, but those pieces are heavier, and they do not curl as well as the first ones.
+The hardest part was getting the finger to move with the pressure. A light squeeze should make a small curl, and a firm squeeze should close the hand further. We got there by tying the string to a servo horn and turning the horn by the same number of degrees the glove sent. That works, and it is also fussy. Right now the fingers only move if we hold the pull between the fingers and the servo at an angle. The second set of fingers looks much more like a real hand, but those pieces are heavier, and they do not curl as well as the first ones.
 
 This servo can turn about halfway around, and then it stops. It cannot wind the string for several full turns. One horn pulls every finger we tied on, so the hand closes all at once. The Servo pHAT also needs its own USB-C cable for the motor. Without that cable the board still shows up on I2C at `0x40`, and the servo does not move.
 
-Next time we will try another material, and a different way of making the joints, so the fingers weigh less and bend more easily. The drawing says "Love from A!" Pi 3 says it in plain words: "Demi sent you a hand squeeze."
+Next time we will try another material, and a different way of making the joints, so the fingers weigh less and bend more easily. We also want the string to pull on its own, without someone holding it at an angle between the fingers and the servo. The drawing says "Love from A!" Pi 3 says it in plain words: "Demi sent you a hand squeeze."
 
 ## Outside the team
 

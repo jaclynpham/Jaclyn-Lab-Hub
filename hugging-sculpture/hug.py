@@ -101,21 +101,19 @@ def open_strip(pin_number, count, brightness):
 
     model = board_model()
     print(f"Board: {model}")
+    if "Pi 5" in model:
+        return open_pi5_strip(pin_number, count, brightness)
     if os.geteuid() != 0:
         print("Not running as root. GPIO 18's LED signal needs sudo, or the pin stays still.")
         print("  sudo .venv/bin/python led_test.py --color 255 0 0")
-    if "Pi 5" in model:
-        print("This is a Pi 5. The Core Electronics guide says this LED method does not work on a Pi 5.")
-        print("The script still tries. If the color does not change, the data wire is not being driven.")
     try:
         from rpi_ws281x import Adafruit_NeoPixel, Color
     except ImportError as exc:
         raise SystemExit(
             "rpi_ws281x is not installed for this Python.\n"
-            "  python3 -m venv .venv && .venv/bin/pip install rpi_ws281x"
+            "  .venv/bin/pip install rpi_ws281x"
         ) from exc
     level = max(1, min(255, int(round(brightness * 255))))
-    # Channel 1 is the second PWM, used by these pins in the guide.
     channel = 1 if pin_number in (13, 19, 41, 45, 53) else 0
     strip = Adafruit_NeoPixel(count, pin_number, 800000, 10, False, level, channel)
     try:
@@ -129,6 +127,41 @@ def open_strip(pin_number, count, brightness):
         ) from exc
     print(f"LED signal started on GPIO {pin_number}, {count} LEDs, brightness {level}/255.")
     return Strip(strip, Color)
+
+
+def open_pi5_strip(pin_number, count, brightness):
+    import os
+
+    if not os.path.exists("/dev/pio0"):
+        raise SystemExit(
+            "This Pi 5 cannot drive the strip yet: /dev/pio0 is missing.\n"
+            "Update the board, then reboot:\n"
+            "  sudo apt update && sudo apt full-upgrade && sudo reboot"
+        )
+    try:
+        import board
+        import adafruit_pixelbuf
+        from adafruit_raspberry_pi5_neopixel_write import neopixel_write
+    except ImportError as exc:
+        raise SystemExit(
+            "The Pi 5 LED driver is not installed in this virtual environment.\n"
+            "  venv/bin/pip install Adafruit-Blinka adafruit-circuitpython-pixelbuf Adafruit-Blinka-Raspberry-Pi5-Neopixel"
+        ) from exc
+    pin = getattr(board, f"D{pin_number}", None)
+    if pin is None:
+        raise SystemExit(f"GPIO {pin_number} is not a pin this board library knows.")
+
+    class Pi5Strip(adafruit_pixelbuf.PixelBuf):
+        def __init__(self):
+            self._pin = pin
+            super().__init__(size=count, byteorder="GRB", brightness=brightness, auto_write=False)
+
+        def _transmit(self, buffer):
+            neopixel_write(self._pin, buffer)
+
+    print(f"Pi 5 LED signal on GPIO {pin_number}, {count} LEDs.")
+    print("rpi_ws281x cannot run on this board. That was the earlier crash, not the wiring.")
+    return Pi5Strip()
 
 
 def rest_level(sensor):

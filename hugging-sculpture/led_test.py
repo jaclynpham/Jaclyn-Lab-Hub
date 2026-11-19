@@ -3,8 +3,8 @@
 This uses rpi_ws281x on GPIO 18, the same path as the Core Electronics guide.
 Run it with sudo. A working strip becomes one flat color.
 
-  sudo python led_test.py --color 255 0 0
-  sudo python led_test.py
+  sudo .venv/bin/python led_test.py --color 255 0 0
+  sudo .venv/bin/python led_test.py
 
 Then try 0 255 0 and 0 0 255. q turns the strip off.
 """

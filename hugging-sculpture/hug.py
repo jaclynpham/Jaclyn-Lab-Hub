@@ -103,7 +103,7 @@ def open_strip(pin_number, count, brightness):
     print(f"Board: {model}")
     if os.geteuid() != 0:
         print("Not running as root. GPIO 18's LED signal needs sudo, or the pin stays still.")
-        print("  sudo python led_test.py")
+        print("  sudo .venv/bin/python led_test.py --color 255 0 0")
     if "Pi 5" in model:
         print("This is a Pi 5. The Core Electronics guide says this LED method does not work on a Pi 5.")
         print("The script still tries. If the color does not change, the data wire is not being driven.")
@@ -112,7 +112,7 @@ def open_strip(pin_number, count, brightness):
     except ImportError as exc:
         raise SystemExit(
             "rpi_ws281x is not installed for this Python.\n"
-            "  sudo pip3 install rpi_ws281x"
+            "  python3 -m venv .venv && .venv/bin/pip install rpi_ws281x"
         ) from exc
     level = max(1, min(255, int(round(brightness * 255))))
     # Channel 1 is the second PWM, used by these pins in the guide.

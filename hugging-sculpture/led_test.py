@@ -1,17 +1,16 @@
 """Paint the whole WS2812B strip one color that you type.
 
-No distance sensor. Every LED gets the same red, green, and blue numbers,
-from 0 to 255. A working strip looks like one flat color, not a rainbow.
+This uses rpi_ws281x on GPIO 18, the same path as the Core Electronics guide.
+Run it with sudo. A working strip becomes one flat color.
 
-  python led_test.py
-  python led_test.py --leds 60 --pin 18
+  sudo python led_test.py --color 255 0 0
+  sudo python led_test.py
 
-Try 255 0 0 for red, 0 255 0 for green, and 0 0 255 for blue.
-If those three come out swapped, run again with --order rgb.
-q turns the strip off.
+Then try 0 255 0 and 0 0 255. q turns the strip off.
 """
 
 import argparse
+import time
 
 from hug import lights_off, open_strip
 
@@ -22,6 +21,7 @@ def parse_args():
     parser.add_argument("--leds", type=int, default=30, help="number of LEDs on the strip (default 30)")
     parser.add_argument("--brightness", type=float, default=1.0, help="strip brightness, 0 to 1 (default 1)")
     parser.add_argument("--order", choices=("grb", "rgb"), default="grb", help="WS2812B color order (default grb)")
+    parser.add_argument("--color", nargs=3, type=int, metavar=("R", "G", "B"), help="set this color and hold it")
     args = parser.parse_args()
     if args.leds < 1:
         raise SystemExit("--leds must be at least 1.")
@@ -50,21 +50,34 @@ def ask_rgb():
         return color
 
 
+def show(strip, color):
+    strip.fill(color)
+    strip.show()
+    print(f"Sent rgb {color[0]} {color[1]} {color[2]} to every LED.")
+    print("If the strip did not change, the data pin is not reaching the first LED.")
+
+
 def main():
     args = parse_args()
+    if args.color is not None and any(channel < 0 or channel > 255 for channel in args.color):
+        raise SystemExit("Each --color number stays between 0 and 255.")
     strip = open_strip(args.pin, args.leds, args.brightness)
     if args.order == "rgb":
         strip.byteorder = "RGB"
-    print(f"{args.leds} LEDs on GPIO {args.pin}. The whole strip uses the color you type.")
+    print("Data wire: GPIO 18 is physical pin 12. The arrow on the strip points away from the Pi.")
+    print("Red is 5 V, white or black is ground, and that ground is tied to a Pi ground pin.")
     try:
+        if args.color is not None:
+            show(strip, tuple(args.color))
+            print("Holding that color. Ctrl+C turns the strip off.")
+            while True:
+                time.sleep(0.5)
         while True:
             color = ask_rgb()
             if color is None:
                 print("Lights off.")
                 break
-            strip.fill(color)
-            strip.show()
-            print(f"Set every LED to rgb {color[0]} {color[1]} {color[2]}.")
+            show(strip, color)
     except KeyboardInterrupt:
         print("\nLights off.")
     finally:

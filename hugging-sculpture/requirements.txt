@@ -1,4 +1,2 @@
 sparkfun-qwiic-proximity
-adafruit-circuitpython-neopixel
-Adafruit-Blinka
-Adafruit-Blinka-Raspberry-Pi5-Neopixel
+rpi_ws281x

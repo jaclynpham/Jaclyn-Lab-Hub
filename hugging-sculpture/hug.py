@@ -68,33 +68,67 @@ def open_sensor():
     return sensor
 
 
-def open_strip(pin_number, count, brightness):
+def board_model():
     try:
-        import board
-        import neopixel
+        with open("/proc/device-tree/model", encoding="ascii", errors="replace") as handle:
+            return handle.read().replace("\x00", "").strip()
+    except OSError:
+        return "unknown"
+
+
+class Strip:
+    """Same fill/show shape as the other scripts, backed by rpi_ws281x."""
+
+    def __init__(self, strip, color):
+        self._strip = strip
+        self._color = color
+        self.byteorder = "GRB"
+
+    def fill(self, rgb):
+        red, green, blue = rgb
+        if self.byteorder == "RGB":
+            red, green = green, red
+        packed = self._color(red, green, blue)
+        for index in range(self._strip.numPixels()):
+            self._strip.setPixelColor(index, packed)
+
+    def show(self):
+        self._strip.show()
+
+
+def open_strip(pin_number, count, brightness):
+    import os
+
+    model = board_model()
+    print(f"Board: {model}")
+    if os.geteuid() != 0:
+        print("Not running as root. GPIO 18's LED signal needs sudo, or the pin stays still.")
+        print("  sudo python led_test.py")
+    if "Pi 5" in model:
+        print("This is a Pi 5. The Core Electronics guide says this LED method does not work on a Pi 5.")
+        print("The script still tries. If the color does not change, the data wire is not being driven.")
+    try:
+        from rpi_ws281x import Adafruit_NeoPixel, Color
     except ImportError as exc:
         raise SystemExit(
-            "The NeoPixel libraries are not installed for this Python.\n"
-            "  python -m pip install adafruit-circuitpython-neopixel Adafruit-Blinka Adafruit-Blinka-Raspberry-Pi5-Neopixel"
+            "rpi_ws281x is not installed for this Python.\n"
+            "  sudo pip3 install rpi_ws281x"
         ) from exc
-    pin_name = f"D{pin_number}"
-    pin = getattr(board, pin_name, None)
-    if pin is None:
-        raise SystemExit(f"GPIO {pin_number} is not a pin this board library knows as {pin_name}.")
+    level = max(1, min(255, int(round(brightness * 255))))
+    # Channel 1 is the second PWM, used by these pins in the guide.
+    channel = 1 if pin_number in (13, 19, 41, 45, 53) else 0
+    strip = Adafruit_NeoPixel(count, pin_number, 800000, 10, False, level, channel)
     try:
-        return neopixel.NeoPixel(
-            pin,
-            count,
-            brightness=brightness,
-            auto_write=False,
-            pixel_order=neopixel.GRB,
-        )
+        strip.begin()
     except Exception as exc:
         raise SystemExit(
-            f"Could not start the LED strip on GPIO {pin_number}.\n"
-            "On a Pi 5, install Adafruit-Blinka-Raspberry-Pi5-Neopixel and run with sudo if the pin stays dark.\n"
+            f"Could not start the LED signal on GPIO {pin_number}.\n"
+            "Run with sudo. Data goes to physical pin 12 for GPIO 18, and the strip's arrow points away from the Pi.\n"
+            "The strip ground and the Pi ground have to be the same wire.\n"
             f"({exc})"
         ) from exc
+    print(f"LED signal started on GPIO {pin_number}, {count} LEDs, brightness {level}/255.")
+    return Strip(strip, Color)
 
 
 def rest_level(sensor):

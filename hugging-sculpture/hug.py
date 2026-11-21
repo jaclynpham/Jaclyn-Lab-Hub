@@ -6,8 +6,8 @@ The hue stays orange. What changes is the saturation.
 
 Wiring
   Qwiic cable from the Pi to the VCNL4040. That uses I2C, GPIO 2 and GPIO 3.
-  Strip data wire to a free GPIO. This script uses GPIO 18 unless you pass
-  --pin. Do not use GPIO 2 or 3 for the strip.
+  On a Pi 5 the strip data wire goes to GPIO 10, physical pin 19. That is
+  the SPI data pin. Pin 12 is not used.
   Strip 5 V to a 5 V supply that can feed the whole strip. A long strip
   should not take its power from the Pi. Connect the strip ground to the
   Pi ground.
@@ -17,7 +17,7 @@ reading. Move closer and the orange should deepen. If it barely changes,
 print the numbers and pass a smaller --span.
 
   python hug.py
-  python hug.py --leds 60 --pin 18
+  python hug.py --leds 60
 """
 
 import argparse
@@ -36,7 +36,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Pale orange far away, warm orange up close.",
     )
-    parser.add_argument("--pin", type=int, default=18, help="GPIO for the strip data wire (default 18)")
+    parser.add_argument("--pin", type=int, default=18, help="GPIO for the strip on older Pis (default 18). A Pi 5 uses GPIO 10.")
     parser.add_argument("--leds", type=int, default=30, help="number of LEDs on the strip (default 30)")
     parser.add_argument("--brightness", type=float, default=0.45, help="strip brightness, 0 to 1 (default 0.45)")
     parser.add_argument("--span", type=float, default=1500.0, help="proximity rise from far to fully warm (default 1500)")
@@ -79,10 +79,16 @@ def board_model():
 class Strip:
     """Same fill/show shape as the other scripts, backed by rpi_ws281x."""
 
-    def __init__(self, strip, color):
+    def __init__(self, strip, color, pin_number):
         self._strip = strip
         self._color = color
         self.byteorder = "GRB"
+        self.where = f"GPIO {pin_number}"
+        self.data_note = (
+            f"Data wire: GPIO {pin_number} is physical pin 12 when the pin is 18. "
+            "The arrow on the strip points away from the Pi.\n"
+            "Red is 5 V, white or black is ground, and that ground is tied to a Pi ground pin."
+        )
 
     def fill(self, rgb):
         red, green, blue = rgb
@@ -102,7 +108,7 @@ def open_strip(pin_number, count, brightness):
     model = board_model()
     print(f"Board: {model}")
     if "Pi 5" in model:
-        return open_pi5_strip(pin_number, count, brightness)
+        return open_pi5_strip(count, brightness)
     if os.geteuid() != 0:
         print("Not running as root. GPIO 18's LED signal needs sudo, or the pin stays still.")
         print("  sudo .venv/bin/python led_test.py --color 255 0 0")
@@ -126,41 +132,66 @@ def open_strip(pin_number, count, brightness):
             f"({exc})"
         ) from exc
     print(f"LED signal started on GPIO {pin_number}, {count} LEDs, brightness {level}/255.")
-    return Strip(strip, Color)
+    return Strip(strip, Color, pin_number)
 
 
-def open_pi5_strip(pin_number, count, brightness):
+def open_pi5_strip(count, brightness):
     import os
 
-    if not os.path.exists("/dev/pio0"):
+    device = "/dev/spidev0.0"
+    if not os.path.exists(device):
         raise SystemExit(
-            "This Pi 5 cannot drive the strip yet: /dev/pio0 is missing.\n"
-            "Update the board, then reboot:\n"
-            "  sudo apt update && sudo apt full-upgrade && sudo reboot"
+            "SPI is off, so /dev/spidev0.0 is missing.\n"
+            "Turn SPI on, then reboot:\n"
+            "  sudo raspi-config nonint do_spi 0\n"
+            "  sudo reboot"
         )
     try:
-        import board
-        import adafruit_pixelbuf
-        from adafruit_raspberry_pi5_neopixel_write import neopixel_write
+        from pi5neo import EPixelType, Pi5Neo
     except ImportError as exc:
         raise SystemExit(
-            "The Pi 5 LED driver is not installed in this virtual environment.\n"
-            "  venv/bin/pip install Adafruit-Blinka adafruit-circuitpython-pixelbuf Adafruit-Blinka-Raspberry-Pi5-Neopixel"
+            "pi5neo is not installed in this virtual environment.\n"
+            "  venv/bin/pip install pi5neo"
         ) from exc
-    pin = getattr(board, f"D{pin_number}", None)
-    if pin is None:
-        raise SystemExit(f"GPIO {pin_number} is not a pin this board library knows.")
+    try:
+        neo = Pi5Neo(device, num_leds=count, spi_speed_khz=800, quiet_mode=True)
+        neo.fill_strip(0, 0, 0)
+        neo.update_strip(sleep_duration=None)
+    except Exception as exc:
+        raise SystemExit(
+            "Could not start the SPI LED signal.\n"
+            "Run with sudo. Data goes to physical pin 19 (GPIO 10), not pin 12.\n"
+            f"({exc})"
+        ) from exc
 
-    class Pi5Strip(adafruit_pixelbuf.PixelBuf):
+    class Pi5Strip:
         def __init__(self):
-            self._pin = pin
-            super().__init__(size=count, byteorder="GRB", brightness=brightness, auto_write=False)
+            self._neo = neo
+            self._brightness = brightness
+            self._orders = {"GRB": EPixelType.GRB, "RGB": EPixelType.RGB}
+            self.byteorder = "GRB"
+            self.where = "GPIO 10 (physical pin 19)"
+            self.data_note = (
+                "Data wire: GPIO 10 is physical pin 19. Move it off pin 12.\n"
+                "The arrow on the strip points away from the Pi.\n"
+                "Red is 5 V, white or black is ground, and that ground is tied to a Pi ground pin."
+            )
 
-        def _transmit(self, buffer):
-            neopixel_write(self._pin, buffer)
+        def fill(self, rgb):
+            red, green, blue = (
+                max(0, min(255, int(round(channel * self._brightness)))) for channel in rgb
+            )
+            self._neo.pixel_type = self._orders.get(self.byteorder, EPixelType.GRB)
+            self._neo.fill_strip(red, green, blue)
 
-    print(f"Pi 5 LED signal on GPIO {pin_number}, {count} LEDs.")
-    print("rpi_ws281x cannot run on this board. That was the earlier crash, not the wiring.")
+        def show(self):
+            self._neo.update_strip(sleep_duration=None)
+
+        def close(self):
+            self._neo.close()
+
+    print(f"Pi 5 SPI LED signal on GPIO 10, {count} LEDs.")
+    print("Move the data wire to physical pin 19. Pin 12 is no longer the data pin.")
     return Pi5Strip()
 
 
@@ -187,6 +218,9 @@ def orange(amount):
 def lights_off(strip):
     strip.fill((0, 0, 0))
     strip.show()
+    close = getattr(strip, "close", None)
+    if close is not None:
+        close()
 
 
 def main():
@@ -197,7 +231,7 @@ def main():
     print(
         f"Far reading {floor:.0f}. "
         f"Fully warm orange is about {floor + args.span:.0f}. "
-        f"Strip: {args.leds} LEDs on GPIO {args.pin}."
+        f"Strip: {args.leds} LEDs on {strip.where}."
     )
     smooth = floor
     shown = None

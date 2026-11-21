@@ -1,10 +1,10 @@
 """Paint the whole WS2812B strip one color that you type.
 
-This uses rpi_ws281x on GPIO 18, the same path as the Core Electronics guide.
+On a Pi 5 this sends the color over SPI. The data wire is GPIO 10, physical pin 19.
 Run it with sudo. A working strip becomes one flat color.
 
-  sudo .venv/bin/python led_test.py --color 255 0 0
-  sudo .venv/bin/python led_test.py
+  sudo venv/bin/python led_test.py --color 255 0 0
+  sudo venv/bin/python led_test.py
 
 Then try 0 255 0 and 0 0 255. q turns the strip off.
 """
@@ -17,7 +17,7 @@ from hug import lights_off, open_strip
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Set every LED to one typed RGB color.")
-    parser.add_argument("--pin", type=int, default=18, help="GPIO for the strip data wire (default 18)")
+    parser.add_argument("--pin", type=int, default=18, help="GPIO for the strip on older Pis (default 18). A Pi 5 uses GPIO 10.")
     parser.add_argument("--leds", type=int, default=30, help="number of LEDs on the strip (default 30)")
     parser.add_argument("--brightness", type=float, default=1.0, help="strip brightness, 0 to 1 (default 1)")
     parser.add_argument("--order", choices=("grb", "rgb"), default="grb", help="WS2812B color order (default grb)")
@@ -64,8 +64,7 @@ def main():
     strip = open_strip(args.pin, args.leds, args.brightness)
     if args.order == "rgb":
         strip.byteorder = "RGB"
-    print("Data wire: GPIO 18 is physical pin 12. The arrow on the strip points away from the Pi.")
-    print("Red is 5 V, white or black is ground, and that ground is tied to a Pi ground pin.")
+    print(strip.data_note)
     try:
         if args.color is not None:
             show(strip, tuple(args.color))
